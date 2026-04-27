@@ -25,4 +25,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   STASHIT_EMBEDDING_PROVIDER: Env.schema.enum.optional(['openai'] as const),
   STASHIT_EMBEDDING_MODEL: Env.schema.string.optional(),
   STASHIT_EMBEDDING_API_KEY: Env.schema.string.optional(),
+
+  STASHIT_FETCH_PROVIDER: Env.schema.enum.optional(['jina'] as const),
+  STASHIT_FETCH_API_KEY: Env.schema.string.optional(),
 })
