@@ -1,15 +1,23 @@
 import app from '@adonisjs/core/services/app'
 import { test } from '@japa/runner'
 
+import EmbeddingProvider from '#services/embedding_provider'
 import enrichmentQueue from '#services/enrichment_queue'
 import LlmProvider from '#services/llm_provider'
 import { authHeader } from '#tests/helpers/api_key'
+import { mockEmbeddingReturning } from '#tests/helpers/mock_embedding'
 import { mockModelReturning } from '#tests/helpers/mock_llm'
 
 function mockProvider(json: object): LlmProvider {
   return {
     getModel: async () => mockModelReturning(json),
   } as unknown as LlmProvider
+}
+
+function mockEmbedding(): EmbeddingProvider {
+  return {
+    getModel: async () => mockEmbeddingReturning(new Array(1536).fill(0.01)),
+  } as unknown as EmbeddingProvider
 }
 
 test.group('LLM enrichment (E2E)', (group) => {
@@ -64,6 +72,7 @@ test.group('LLM enrichment (E2E)', (group) => {
         type: 'article',
       })
     )
+    app.container.swap(EmbeddingProvider, () => mockEmbedding())
 
     const created = await client.post('/bookmarks').headers(auth).json({
       url: 'https://k8s.example.com/post',
