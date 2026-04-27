@@ -1,0 +1,12 @@
+**/node_modules
+**/build
+**/dist
+**/.adonisjs
+**/tmp
+**/.env
+**/.env.local
+**/.env.*.local
+**/.git
+**/.DS_Store
+**/.turbo
+**/coverage

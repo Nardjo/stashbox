@@ -8,7 +8,25 @@ stashit is a single-user, self-hosted bookmark backend designed to be consumed p
 
 ## Why
 
-Existing self-hosted bookmark managers (Linkding, Linkwarden, Karakeep) are UI-centric. stashit inverts the priority: the API is the product, the clients are thin shells around it. It is the natural memory layer for personal AI workflows — ask your agent *"find me that article about diffusion models I saved last month"* and get a usable answer.
+Existing self-hosted bookmark managers (Linkding, Linkwarden, Karakeep) are UI-centric. stashit inverts the priority: the API is the product, the clients are thin shells around it. It is the natural memory layer for personal AI workflows — ask your agent _"find me that article about diffusion models I saved last month"_ and get a usable answer.
+
+## Quick start
+
+```bash
+git clone https://github.com/Nardjo/stashit.git
+cd stashit
+cp .env.example .env
+# Generate APP_KEY:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Paste it into .env, then:
+docker compose up -d
+
+curl http://localhost:3333/   # → {"ok":true}
+docker compose exec api node ace key:create my-laptop
+```
+
+Full self-hosting guide (plain Docker, backup/restore): [docs/SELF_HOSTING.md](./docs/SELF_HOSTING.md).
+API reference: [docs/API.md](./docs/API.md).
 
 ## Planned clients
 
