@@ -11,4 +11,6 @@ server.use([
 
 router.use([() => import('@adonisjs/core/bodyparser_middleware')])
 
-export const middleware = router.named({})
+export const middleware = router.named({
+  authApiKey: () => import('#middleware/auth_api_key_middleware'),
+})
