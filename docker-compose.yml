@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: stashit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stashit
+      POSTGRES_PASSWORD: stashit
+      POSTGRES_DB: stashit
+    ports:
+      - "5435:5432"
+    volumes:
+      - stashit-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stashit -d stashit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  stashit-pg-data:
