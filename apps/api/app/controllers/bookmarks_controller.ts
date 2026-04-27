@@ -1,8 +1,11 @@
 import { randomUUID } from 'node:crypto'
+
 import type { HttpContext } from '@adonisjs/core/http'
-import Bookmark from '#models/bookmark'
-import { createBookmarkValidator } from '#validators/bookmark'
 import { hashUrl, normalizeUrl } from '@stashit/shared'
+
+import Bookmark from '#models/bookmark'
+import enrichmentQueue from '#services/enrichment_queue'
+import { createBookmarkValidator } from '#validators/bookmark'
 
 export default class BookmarksController {
   async store({ request, response }: HttpContext) {
@@ -35,6 +38,8 @@ export default class BookmarksController {
       savedCount: 1,
       savedFrom: [],
     })
+
+    await enrichmentQueue.dispatch(bookmark.id)
 
     return response.created(bookmark)
   }

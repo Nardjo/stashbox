@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+
 import { middleware } from '#start/kernel'
 
 const BookmarksController = () => import('#controllers/bookmarks_controller')

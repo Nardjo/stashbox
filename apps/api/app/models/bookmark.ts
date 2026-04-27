@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type {
   BookmarkType,
@@ -6,6 +5,7 @@ import type {
   EnrichmentStatus,
   SavedFrom,
 } from '@stashit/shared'
+import { DateTime } from 'luxon'
 
 export default class Bookmark extends BaseModel {
   static table = 'bookmarks'

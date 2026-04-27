@@ -10,4 +10,6 @@ export default await Env.create(new URL('../', import.meta.url), {
   APP_URL: Env.schema.string({ format: 'url', tld: false }),
 
   DATABASE_URL: Env.schema.string(),
+
+  REDIS_URL: Env.schema.string.optional(),
 })

@@ -2,6 +2,7 @@ import ace from '@adonisjs/core/services/ace'
 import { test } from '@japa/runner'
 
 import ApiKey from '#models/api_key'
+
 import KeyCreate from '../../commands/key_create.js'
 import KeyList from '../../commands/key_list.js'
 import KeyRevoke from '../../commands/key_revoke.js'

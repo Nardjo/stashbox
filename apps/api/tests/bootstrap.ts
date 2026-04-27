@@ -1,10 +1,10 @@
-import { assert } from '@japa/assert'
-import { apiClient } from '@japa/api-client'
 import app from '@adonisjs/core/services/app'
-import type { Config } from '@japa/runner/types'
-import { pluginAdonisJS } from '@japa/plugin-adonisjs'
-import { dbAssertions } from '@adonisjs/lucid/plugins/db'
 import testUtils from '@adonisjs/core/services/test_utils'
+import { dbAssertions } from '@adonisjs/lucid/plugins/db'
+import { apiClient } from '@japa/api-client'
+import { assert } from '@japa/assert'
+import { pluginAdonisJS } from '@japa/plugin-adonisjs'
+import type { Config } from '@japa/runner/types'
 
 export const plugins: Config['plugins'] = [
   assert(),
