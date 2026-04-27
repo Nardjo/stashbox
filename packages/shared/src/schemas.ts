@@ -1,13 +1,6 @@
 import { z } from "zod";
 
-export const BookmarkTypeSchema = z.enum([
-  "tweet",
-  "youtube",
-  "article",
-  "image",
-  "pdf",
-  "other",
-]);
+export const BookmarkTypeSchema = z.enum(["tweet", "youtube", "article", "image", "pdf", "other"]);
 export type BookmarkType = z.infer<typeof BookmarkTypeSchema>;
 
 export const EnrichmentStatusSchema = z.enum([
@@ -24,6 +17,7 @@ export const EnrichmentFailureReasonSchema = z.enum([
   "fetch_unavailable",
   "llm_invalid_output",
   "llm_provider_error",
+  "embedding_provider_error",
   "unknown",
 ]);
 export type EnrichmentFailureReason = z.infer<typeof EnrichmentFailureReasonSchema>;
