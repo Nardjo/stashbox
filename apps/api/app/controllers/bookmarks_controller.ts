@@ -36,7 +36,7 @@ export default class BookmarksController {
       enrichedAt: null,
       embeddingSourceText: null,
       savedCount: 1,
-      savedFrom: [],
+      savedFrom: payload.sharedFrom ? [payload.sharedFrom] : [],
     })
 
     await enrichmentQueue.dispatch(bookmark.id)
