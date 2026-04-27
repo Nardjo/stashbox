@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { hashUrl, normalizeUrl } from '@stashit/shared'
+
 import { authHeader } from '#tests/helpers/api_key'
 
 test.group('POST /bookmarks', (group) => {
