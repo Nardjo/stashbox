@@ -85,6 +85,116 @@ Hard-delete a bookmark.
 - `404 Not Found` — `{ "error": "not_found", "message": "Bookmark not found" }`.
 - `401 Unauthorized` — auth.
 
+---
+
+### `GET /bookmarks`
+
+List recent bookmarks. Excludes `failed`, `pending`, `enriching` — only `done` and `degraded` are returned.
+
+**Query**
+
+| Param    | Type                                                        | Default | Notes                          |
+| -------- | ----------------------------------------------------------- | ------- | ------------------------------ |
+| `limit`  | int 1-200                                                   | 50      |                                |
+| `offset` | int ≥0                                                      | 0       |                                |
+| `type`   | enum `tweet \| youtube \| article \| image \| pdf \| other` | —       | optional filter                |
+| `tag`    | string                                                      | —       | exact tag match (single value) |
+
+**Response 200**
+
+```json
+{ "results": [Bookmark, ...] }
+```
+
+Ordered by `savedAt DESC`.
+
+---
+
+### `GET /bookmarks/failed`
+
+List bookmarks whose enrichment ended in `failed`. Separate path so failures never leak into the default listing.
+
+**Query**: `limit`, `offset`, `type` — same as `GET /bookmarks`.
+
+---
+
+### `POST /bookmarks/:id/refresh`
+
+Re-enqueue the enrichment pipeline for a bookmark. Resets `enrichmentStatus` to `pending` and clears the previous error.
+
+**Responses**
+
+- `202 Accepted` — `{ "id": "<uuid>" }`. The job is queued; poll `GET /bookmarks/:id` for completion.
+- `404 Not Found`.
+
+---
+
+### `POST /search`
+
+Semantic similarity search over `done` + `degraded` bookmarks. Filters are applied **before** the vector top-K so `type` / `tags` queries always return up to `limit` results when enough exist.
+
+**Body**
+
+```json
+{
+  "query": "kubernetes orchestration",
+  "limit": 10,
+  "minScore": 0.4,
+  "type": "article",
+  "tags": ["devops", "infra"]
+}
+```
+
+| Field      | Type               | Default | Notes                          |
+| ---------- | ------------------ | ------- | ------------------------------ |
+| `query`    | string (1+ chars)  | —       | required                       |
+| `limit`    | int >0             | 10      |                                |
+| `minScore` | float 0–1          | 0.4     | raw cosine similarity cut      |
+| `type`     | bookmark type enum | —       | optional                       |
+| `tags`     | string[]           | —       | OR semantics (any tag matches) |
+
+**Response 200**
+
+```json
+{
+  "results": [
+    {
+      "id": "<uuid>",
+      "url": "https://...",
+      "title": "...",
+      "description": "...",
+      "tags": [...],
+      "type": "article",
+      "score": 0.87,
+      "enrichmentStatus": "done",
+      "savedAt": "2026-01-12T10:21:09.000Z"
+    }
+  ]
+}
+```
+
+`score` is raw cosine similarity (`1 - cosine_distance`), clamped to `[0, 1]`. Higher = closer.
+
+---
+
+### `GET /tags`
+
+List distinct tags with usage counts (over `done` + `degraded` bookmarks only).
+
+**Query**
+
+| Param      | Type | Default | Notes              |
+| ---------- | ---- | ------- | ------------------ |
+| `minCount` | int  | 1       | filter sparse tags |
+
+**Response 200**
+
+```json
+{ "results": [{ "tag": "ml", "count": 12 }, ...] }
+```
+
+Ordered by count desc, then alphabetical.
+
 ## Bookmark schema
 
 ```ts
@@ -131,7 +241,6 @@ None in v1. Single-user expected. Add a reverse proxy (Caddy, Traefik, nginx) if
 
 ## Roadmap
 
-- `POST /search` — semantic + keyword search with pgvector
-- `GET /bookmarks` — paginated list, filter by tags / type / status
 - `PATCH /bookmarks/:id` — edit title, tags, description
+- Hybrid search (BM25 + vector) — v1.x candidate
 - OpenAPI spec auto-generation
