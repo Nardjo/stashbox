@@ -12,4 +12,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   DATABASE_URL: Env.schema.string(),
 
   REDIS_URL: Env.schema.string.optional(),
+
+  STASHIT_LLM_PROVIDER: Env.schema.enum.optional([
+    'anthropic',
+    'openai',
+    'google',
+    'openrouter',
+  ] as const),
+  STASHIT_LLM_MODEL: Env.schema.string.optional(),
+  STASHIT_LLM_API_KEY: Env.schema.string.optional(),
 })

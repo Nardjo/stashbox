@@ -61,13 +61,20 @@
     "@adonisjs/core": "^7.3.1",
     "@adonisjs/cors": "^3.0.0",
     "@adonisjs/lucid": "^22.4.2",
+    "@ai-sdk/anthropic": "^3.0.71",
+    "@ai-sdk/google": "^3.0.64",
+    "@ai-sdk/openai": "^3.0.53",
+    "@ai-sdk/provider": "^3.0.8",
+    "@openrouter/ai-sdk-provider": "^2.8.1",
     "@stashit/shared": "workspace:*",
     "@vinejs/vine": "^4.3.1",
+    "ai": "^6.0.168",
     "bullmq": "^5.76.2",
     "ioredis": "^5.10.1",
     "luxon": "^3.7.2",
     "pg": "^8.13.1",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "zod": "^3.25.76"
   },
   "hotHook": {
     "boundaries": [

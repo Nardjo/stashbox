@@ -39,7 +39,7 @@ export default class BookmarksController {
       savedFrom: payload.sharedFrom ? [payload.sharedFrom] : [],
     })
 
-    await enrichmentQueue.dispatch(bookmark.id)
+    await enrichmentQueue.dispatch(bookmark.id, payload.content)
 
     return response.created(bookmark)
   }
