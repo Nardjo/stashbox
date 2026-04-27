@@ -8,6 +8,7 @@ const JOB_NAME = 'enrich-bookmark'
 
 interface EnrichJobData {
   bookmarkId: string
+  content?: string
 }
 
 class EnrichmentQueueService {
@@ -28,9 +29,9 @@ class EnrichmentQueueService {
     return this.bullQueue
   }
 
-  async dispatch(bookmarkId: string): Promise<void> {
+  async dispatch(bookmarkId: string, content?: string): Promise<void> {
     if (this.useInProcess) {
-      const promise = EnrichBookmarkJob.handle(bookmarkId).catch((err) => {
+      const promise = EnrichBookmarkJob.handle(bookmarkId, content).catch((err) => {
         console.error('[enrichment in-process] job failed', err)
       })
       this.inFlight.push(promise)
@@ -38,7 +39,7 @@ class EnrichmentQueueService {
     }
 
     const queue = await this.getBullQueue()
-    await queue.add(JOB_NAME, { bookmarkId })
+    await queue.add(JOB_NAME, { bookmarkId, content })
   }
 
   async flush(): Promise<void> {
@@ -53,7 +54,7 @@ class EnrichmentQueueService {
     this.worker = new BullWorker<EnrichJobData>(
       QUEUE_NAME,
       async (job) => {
-        await EnrichBookmarkJob.handle(job.data.bookmarkId)
+        await EnrichBookmarkJob.handle(job.data.bookmarkId, job.data.content)
       },
       { connection: { url: env.get('REDIS_URL') } }
     )
