@@ -1,5 +1,5 @@
 ---
-"@nardjo/stashit": minor
+"@n4rdjo/stashit": minor
 "@stashit/api-client": minor
 ---
 
