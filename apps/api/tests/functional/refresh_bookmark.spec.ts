@@ -3,6 +3,7 @@ import { test } from '@japa/runner'
 
 import EmbeddingProvider from '#services/embedding_provider'
 import enrichmentQueue from '#services/enrichment_queue'
+import FetchProvider from '#services/fetch_provider'
 import LlmProvider from '#services/llm_provider'
 import { authHeader } from '#tests/helpers/api_key'
 import { mockEmbeddingReturning } from '#tests/helpers/mock_embedding'
@@ -44,6 +45,17 @@ test.group('POST /bookmarks/:id/refresh', (group) => {
         ({
           getModel: async () => mockEmbeddingReturning(new Array(1536).fill(0.01)),
         }) as unknown as EmbeddingProvider
+    )
+    app.container.swap(
+      FetchProvider,
+      () =>
+        ({
+          fetchAndExtract: async () => ({
+            kind: 'success' as const,
+            content:
+              'Refetched body content with enough characters to pass the threshold for a successful Jina extraction.',
+          }),
+        }) as unknown as FetchProvider
     )
 
     const res = await client.post(`/bookmarks/${id}/refresh`).headers(auth)

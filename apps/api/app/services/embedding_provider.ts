@@ -3,7 +3,7 @@ import type { EmbeddingModel } from 'ai'
 
 import env from '#start/env'
 
-export type SupportedEmbeddingProvider = 'openai'
+export type SupportedEmbeddingProvider = 'openai' | 'openrouter'
 
 export default class EmbeddingProvider {
   async getModel(): Promise<EmbeddingModel> {
@@ -28,6 +28,10 @@ export async function resolveEmbeddingModel(
     case 'openai': {
       const { createOpenAI } = await import('@ai-sdk/openai')
       return createOpenAI({ apiKey }).embedding(modelId)
+    }
+    case 'openrouter': {
+      const { createOpenRouter } = await import('@openrouter/ai-sdk-provider')
+      return createOpenRouter({ apiKey }).textEmbeddingModel(modelId)
     }
   }
 }
