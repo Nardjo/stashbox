@@ -106,5 +106,7 @@ export default class ImportCsv extends BaseCommand {
     this.logger.info(
       `Import summary — total: ${total}, inserted: ${inserted}, skipped: ${skipped}, failed: ${failed}`
     )
+
+    await enrichmentQueue.shutdown()
   }
 }
