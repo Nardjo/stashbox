@@ -1,31 +1,26 @@
 {
   "name": "@n4rdjo/stashit",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "stashit CLI — save and search bookmarks from the terminal",
   "type": "module",
   "publishConfig": {
     "access": "public"
   },
   "bin": {
-    "stashit": "./dist/index.js"
+    "stashit": "dist/index.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && chmod +x dist/index.js",
     "dev": "tsup --watch",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@stashit/api-client": "workspace:*",
-    "@stashit/shared": "workspace:*",
-    "citty": "^0.1.6",
-    "picocolors": "^1.1.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
