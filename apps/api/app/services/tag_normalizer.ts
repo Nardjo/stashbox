@@ -11,6 +11,8 @@ export function normalizeTag(input: string): string {
   return cleaned.split('-').filter(Boolean).map(singularize).join('-')
 }
 
+const TAG_CAP = 12
+
 export function normalizeTags(tags: readonly string[]): string[] {
   const out: string[] = []
   const seen = new Set<string>()
@@ -19,6 +21,7 @@ export function normalizeTags(tags: readonly string[]): string[] {
     if (!n || seen.has(n)) continue
     seen.add(n)
     out.push(n)
+    if (out.length >= TAG_CAP) break
   }
   return out
 }

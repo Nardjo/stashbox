@@ -5,10 +5,12 @@ import { normalizeTags } from '#services/tag_normalizer'
 
 const BOOKMARK_TYPES = ['tweet', 'youtube', 'article', 'image', 'pdf', 'other'] as const
 
+// NOTE: no `min/max` constraints on the array — Anthropic's structured output
+// rejects `maxItems` on JSON Schema arrays. We cap downstream in normalizeTags.
 const enrichmentSchema = z.object({
-  title: z.string().min(1).max(300),
-  description: z.string().max(2000),
-  tags: z.array(z.string()).max(12),
+  title: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
   type: z.enum(BOOKMARK_TYPES),
 })
 

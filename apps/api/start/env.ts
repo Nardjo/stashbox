@@ -22,7 +22,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   STASHIT_LLM_MODEL: Env.schema.string.optional(),
   STASHIT_LLM_API_KEY: Env.schema.string.optional(),
 
-  STASHIT_EMBEDDING_PROVIDER: Env.schema.enum.optional(['openai'] as const),
+  STASHIT_EMBEDDING_PROVIDER: Env.schema.enum.optional(['openai', 'openrouter'] as const),
   STASHIT_EMBEDDING_MODEL: Env.schema.string.optional(),
   STASHIT_EMBEDDING_API_KEY: Env.schema.string.optional(),
 
