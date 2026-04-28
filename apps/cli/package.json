@@ -1,5 +1,5 @@
 {
-  "name": "stashit",
+  "name": "@nardjo/stashit",
   "version": "0.1.0",
   "description": "stashit CLI — save and search bookmarks from the terminal",
   "type": "module",

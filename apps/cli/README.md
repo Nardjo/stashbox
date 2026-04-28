@@ -5,9 +5,9 @@ CLI for [stashit](https://github.com/Nardjo/stashit) — save and search bookmar
 ## Install
 
 ```sh
-npm install -g stashit
+npm install -g @nardjo/stashit
 # or
-npx stashit --help
+npx @nardjo/stashit --help
 ```
 
 ## Setup
