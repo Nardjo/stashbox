@@ -1,8 +1,11 @@
 {
-  "name": "@stashit/cli",
+  "name": "stashit",
   "version": "0.1.0",
   "description": "stashit CLI — save and search bookmarks from the terminal",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "stashit": "./dist/index.js"
   },
