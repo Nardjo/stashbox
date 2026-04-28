@@ -1,15 +1,16 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import type { StashitClient } from "@stashit/api-client";
+import { z } from "zod";
+
 import {
-  searchSemantic,
-  listRecent,
-  listByTag,
-  getBookmark,
-  listTags,
-  listFailed,
   deleteBookmark,
+  getBookmark,
+  listByTag,
+  listFailed,
+  listRecent,
+  listTags,
   refreshBookmark,
+  searchSemantic,
 } from "./tools.js";
 
 export function createServer(client: StashitClient): McpServer {

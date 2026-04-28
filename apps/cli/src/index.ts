@@ -30,7 +30,7 @@ const searchCmd = defineCommand({
   run: ({ args }) =>
     withClient((client) =>
       runSearch({
-        query: args.query,
+        query: args.query as string,
         json: args.json,
         client,
         print,
@@ -69,7 +69,7 @@ const getCmd = defineCommand({
     json: { type: "boolean", default: false },
   },
   run: ({ args }) =>
-    withClient((client) => runGet({ id: args.id, json: args.json, client, print })),
+    withClient((client) => runGet({ id: args.id as string, json: args.json, client, print })),
 });
 
 const addCmd = defineCommand({
@@ -82,7 +82,7 @@ const addCmd = defineCommand({
   run: ({ args }) =>
     withClient((client) =>
       runAdd({
-        url: args.url,
+        url: args.url as string,
         json: args.json,
         client,
         print,
@@ -98,7 +98,7 @@ const deleteCmd = defineCommand({
     json: { type: "boolean", default: false },
   },
   run: ({ args }) =>
-    withClient((client) => runDelete({ id: args.id, json: args.json, client, print })),
+    withClient((client) => runDelete({ id: args.id as string, json: args.json, client, print })),
 });
 
 const refreshCmd = defineCommand({
@@ -108,7 +108,7 @@ const refreshCmd = defineCommand({
     json: { type: "boolean", default: false },
   },
   run: ({ args }) =>
-    withClient((client) => runRefresh({ id: args.id, json: args.json, client, print })),
+    withClient((client) => runRefresh({ id: args.id as string, json: args.json, client, print })),
 });
 
 const failedCmd = defineCommand({

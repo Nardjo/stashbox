@@ -20,7 +20,12 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@stashit/api-client": "workspace:*",
+    "@stashit/shared": "workspace:*",
+    "citty": "^0.2.2",
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",

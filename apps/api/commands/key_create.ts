@@ -25,7 +25,7 @@ export default class KeyCreate extends BaseCommand {
     const { plaintext } = await ApiKey.generate(this.name)
 
     this.logger.info(`API key "${this.name}" created.`)
-    this.logger.warning('Store this key now — it will not be shown again:')
-    this.logger.log(plaintext)
+    this.logger.warning('Store this key now - it will not be shown again:')
+    process.stdout.write(plaintext + '\n')
   }
 }

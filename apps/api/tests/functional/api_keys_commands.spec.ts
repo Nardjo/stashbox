@@ -15,7 +15,19 @@ test.group('ace key:create', (group) => {
   test('creates an api key and prints the plaintext once', async ({ assert }) => {
     const command = await ace.create(KeyCreate, ['mobile-app'])
     command.ui.switchMode('raw')
-    await command.exec()
+
+    let stdout = ''
+    const originalWrite = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk: string | Uint8Array) => {
+      stdout += String(chunk)
+      return originalWrite(chunk)
+    }
+
+    try {
+      await command.exec()
+    } finally {
+      process.stdout.write = originalWrite
+    }
 
     assert.equal(command.exitCode, 0)
 
@@ -23,10 +35,8 @@ test.group('ace key:create', (group) => {
     assert.isString(stored.keyHash)
     assert.notEqual(stored.keyHash.length, 0)
 
-    const allLogs = command.logger.getLogs().map((l) => l.message)
-    const printed = allLogs.join('\n')
-    assert.match(printed, /sk_[A-Za-z0-9_-]+/)
-    assert.notInclude(printed, stored.keyHash)
+    assert.match(stdout, /sk_[A-Za-z0-9_-]+/)
+    assert.notInclude(stdout, stored.keyHash)
   })
 
   test('rejects duplicate names', async ({ assert }) => {

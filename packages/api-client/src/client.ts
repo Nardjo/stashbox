@@ -1,5 +1,16 @@
 import type { Bookmark, BookmarkType, CreateBookmarkInput } from "@stashit/shared";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly body: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export interface ClientOptions {
   baseUrl: string;
   apiKey: string;
@@ -36,7 +47,7 @@ export class StashitClient {
   constructor(options: ClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.apiKey = options.apiKey;
-    this.fetch = options.fetch ?? globalThis.fetch;
+    this.fetch = (options.fetch ?? globalThis.fetch).bind(globalThis);
   }
 
   async search(params: SearchParams): Promise<Bookmark[]> {
@@ -108,8 +119,14 @@ export class StashitClient {
     });
 
     if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-      throw new Error(data.error ?? `HTTP ${res.status}`);
+      const data = (await res.json().catch(() => ({}))) as
+        | { error?: string; message?: string }
+        | Record<string, unknown>;
+      const message =
+        (data as { error?: string }).error ??
+        (data as { message?: string }).message ??
+        `HTTP ${res.status}`;
+      throw new ApiError(message, res.status, data);
     }
 
     return res;

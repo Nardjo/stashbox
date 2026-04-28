@@ -16,7 +16,7 @@ import {
   listFailed,
   deleteBookmark,
   refreshBookmark,
-} from "./tools.js";
+} from "../src/tools.js";
 
 const bookmark = {
   id: "b1b1b1b1-0000-0000-0000-000000000001",

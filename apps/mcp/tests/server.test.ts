@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { StashitClient } from "@stashit/api-client";
-import { createServer } from "./server.js";
+import { describe, expect, it, vi } from "vitest";
+
+import { createServer } from "../src/server.js";
 
 function text(result: unknown): string {
   const r = result as Record<string, unknown>;
