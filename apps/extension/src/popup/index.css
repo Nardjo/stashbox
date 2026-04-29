@@ -1,3 +1,130 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    font-family: "JetBrains Mono", monospace;
+    background-color: #0f0e0c;
+    color: #f5f0e8;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .vault-card {
+    background: #1a1917;
+    border: 1px solid #2e2c28;
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .brass-glow {
+    box-shadow:
+      0 0 0 1px rgba(212, 168, 83, 0.15),
+      0 0 20px rgba(212, 168, 83, 0.08);
+  }
+
+  .brass-border {
+    border: 1px solid rgba(212, 168, 83, 0.25);
+  }
+
+  .grain-overlay {
+    position: relative;
+  }
+  .grain-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 128px;
+  }
+
+  .tag-pill {
+    background: rgba(212, 168, 83, 0.08);
+    border: 1px solid rgba(212, 168, 83, 0.2);
+    color: #c9a96e;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    transition: all 0.2s ease;
+  }
+  .tag-pill:hover {
+    background: rgba(212, 168, 83, 0.15);
+    border-color: rgba(212, 168, 83, 0.35);
+  }
+
+  .input-vault {
+    background: #0f0e0c;
+    border: 1px solid #2e2c28;
+    color: #f5f0e8;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    outline: none;
+  }
+  .input-vault::placeholder {
+    color: #6b665e;
+  }
+  .input-vault:focus {
+    border-color: rgba(212, 168, 83, 0.4);
+    box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.08);
+  }
+
+  .btn-brass {
+    background: linear-gradient(180deg, #d4a853 0%, #b8933f 100%);
+    color: #0f0e0c;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-brass:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(212, 168, 83, 0.25);
+  }
+  .btn-brass:active {
+    transform: translateY(0);
+  }
+  .btn-brass:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid #2e2c28;
+    color: #a39e94;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-ghost:hover {
+    border-color: rgba(212, 168, 83, 0.3);
+    color: #d4a853;
+  }
+}

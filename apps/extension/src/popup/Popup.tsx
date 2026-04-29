@@ -31,7 +31,6 @@ async function extractFromActiveTab(): Promise<ExtractedContent> {
   try {
     return await tryMessage();
   } catch {
-    // Content script not injected yet (tab was open before extension load) — inject now
     const manifest = chrome.runtime.getManifest();
     const files = manifest.content_scripts?.[0]?.js;
     if (!files?.length) throw new Error("No content script declared in manifest");
@@ -40,6 +39,80 @@ async function extractFromActiveTab(): Promise<ExtractedContent> {
   }
 }
 
+/* ─── Icons ─── */
+function IconCog({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function IconArrowLeft({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+    </svg>
+  );
+}
+
+function IconSpinner({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24">
+      <circle
+        className="opacity-20"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="2.5"
+      />
+      <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  );
+}
+
+function IconSeal({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      <circle cx="32" cy="32" r="24" stroke="currentColor" strokeWidth="0.75" opacity="0.25" />
+      <text
+        x="32"
+        y="27"
+        textAnchor="middle"
+        fill="currentColor"
+        fontSize="8"
+        fontFamily="'JetBrains Mono', monospace"
+        letterSpacing="2"
+        opacity="0.7"
+      >
+        STASHIT
+      </text>
+      <path d="M20 34h24M22 38h20M24 42h16" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
+      <circle cx="32" cy="48" r="2" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
+/* ─── Settings ─── */
 function SettingsForm({ onSaved }: { onSaved: (client: StashitClient) => void }) {
   const [apiUrl, setApiUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -65,40 +138,41 @@ function SettingsForm({ onSaved }: { onSaved: (client: StashitClient) => void })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="space-y-1">
-        <label className="block text-xs font-medium text-gray-600">URL de l'API</label>
+    <form onSubmit={handleSubmit} className="space-y-4 animate-fade-up">
+      <div className="space-y-1.5">
+        <label className="block text-[10px] font-medium tracking-widest uppercase text-parchment-300">
+          URL de l'API
+        </label>
         <input
           type="url"
           value={apiUrl}
           onChange={(e) => setApiUrl(e.target.value)}
           placeholder="https://stashit.example.com"
           required
-          className="w-full rounded border border-gray-300 px-2.5 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+          className="input-vault w-full"
         />
       </div>
-      <div className="space-y-1">
-        <label className="block text-xs font-medium text-gray-600">Clé API</label>
+      <div className="space-y-1.5">
+        <label className="block text-[10px] font-medium tracking-widest uppercase text-parchment-300">
+          Clé API
+        </label>
         <input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder="sk-…"
+          placeholder="sk_..."
           required
-          className="w-full rounded border border-gray-300 px-2.5 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+          className="input-vault w-full"
         />
       </div>
-      <button
-        type="submit"
-        disabled={saving}
-        className="w-full rounded bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-      >
-        {saving ? "Enregistrement…" : "Enregistrer"}
+      <button type="submit" disabled={saving} className="btn-brass w-full">
+        {saving ? "Enregistrement..." : "Enregistrer"}
       </button>
     </form>
   );
 }
 
+/* ─── Main Popup ─── */
 export function Popup() {
   const [ready, setReady] = useState(false);
   const [client, setClient] = useState<StashitClient | null>(null);
@@ -149,144 +223,192 @@ export function Popup() {
     }
   }, [ready, client, view, trigger]);
 
+  const showSettings = view === "settings" || !client;
+
   if (!ready) {
     return (
-      <div className="w-80 h-32 flex items-center justify-center text-sm text-gray-400">
-        Chargement…
+      <div className="w-[320px] h-40 flex items-center justify-center grain-overlay">
+        <div className="flex items-center gap-3 text-parchment-200">
+          <IconSpinner className="w-5 h-5 animate-spin text-brass-500" />
+          <span className="text-xs tracking-wide">Ouverture du coffre...</span>
+        </div>
       </div>
     );
   }
 
-  const showSettings = view === "settings" || !client;
-
   return (
-    <div className="w-80 p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h1 className="text-sm font-semibold text-gray-900">
-          {showSettings ? "Paramètres" : "Stashit"}
-        </h1>
+    <div className="w-[320px] grain-overlay bg-vault-bg">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center gap-2.5">
+          {showSettings ? (
+            <button
+              onClick={() => setView("main")}
+              className="text-parchment-300 hover:text-brass-400 transition-colors"
+              title="Retour"
+            >
+              <IconArrowLeft className="w-4 h-4" />
+            </button>
+          ) : null}
+          <h1 className="font-display text-base font-semibold tracking-wide text-parchment-50">
+            {showSettings ? "Paramètres" : "stashit"}
+          </h1>
+        </div>
         {client && (
           <button
             onClick={() => setView(showSettings ? "main" : "settings")}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-parchment-300 hover:text-brass-400 transition-colors p-1"
             title={showSettings ? "Retour" : "Paramètres"}
           >
-            {showSettings ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            )}
+            <IconCog className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {showSettings ? (
-        <SettingsForm
-          onSaved={(c) => {
-            setClient(c);
-            setView("main");
-          }}
-        />
-      ) : (
-        <>
-          {state === "idle" && (
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-1">
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Préparation…
-            </div>
-          )}
+      {/* Divider */}
+      <div className="mx-5 h-px bg-vault-border" />
 
-          {state === "saving" && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 py-1">
-              <svg className="w-4 h-4 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Sauvegarde en cours…
-            </div>
-          )}
+      {/* Content */}
+      <div className="px-5 py-4">
+        {showSettings ? (
+          <SettingsForm
+            onSaved={(c) => {
+              setClient(c);
+              setView("main");
+            }}
+          />
+        ) : (
+          <div className="space-y-4 min-h-[140px]">
+            {/* Loading states */}
+            {(state === "idle" || state === "saving") && (
+              <div className="flex flex-col items-center justify-center py-6 gap-3 animate-fade-up">
+                <IconSpinner className="w-8 h-8 animate-spin text-brass-500" />
+                <p className="text-xs text-parchment-200 tracking-wide">
+                  {state === "idle" ? "Préparation..." : "Sauvegarde en cours..."}
+                </p>
+                {state === "saving" && (
+                  <div className="w-full max-w-[180px] h-0.5 bg-vault-elevated rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brass-500 rounded-full animate-[shimmer_1.5s_linear_infinite] w-full"
+                      style={{
+                        backgroundSize: "200% 100%",
+                        backgroundImage:
+                          "linear-gradient(90deg, #D4A853 0%, #F5F0E8 50%, #D4A853 100%)",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
-          {(state === "saved" || state === "already-saved") && bookmark && (
-            <div className="space-y-2">
-              <p
-                className={`text-xs font-medium ${state === "saved" ? "text-green-600" : "text-amber-600"}`}
-              >
-                {state === "saved" ? "✓ Sauvegardé" : "Déjà sauvegardé"}
-              </p>
-              <p className="text-sm font-medium text-gray-900 leading-snug">{bookmark.title}</p>
-              {bookmark.tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {bookmark.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        state === "saved"
-                          ? "bg-indigo-100 text-indigo-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {tag}
-                    </span>
-                  ))}
+            {/* Success states */}
+            {(state === "saved" || state === "already-saved") && bookmark && (
+              <div className="space-y-4 animate-fade-up">
+                {/* Seal */}
+                <div className="flex justify-center py-1">
+                  <div
+                    className={`${state === "saved" ? "animate-seal-stamp" : ""} text-brass-500`}
+                  >
+                    <div className="w-16 h-16">
+                      <IconSeal className="w-full h-full" />
+                    </div>
+                  </div>
                 </div>
-              ) : bookmark.enrichmentStatus === "pending" ||
-                bookmark.enrichmentStatus === "enriching" ? (
-                <p className="text-xs text-gray-400 italic">Analyse en cours…</p>
-              ) : null}
-            </div>
-          )}
 
-          {state === "failed" && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-red-600">Échec de la sauvegarde</p>
-              {error && <p className="text-xs text-gray-400">{error}</p>}
-              <button
-                onClick={trigger}
-                className="w-full rounded border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-              >
-                Réessayer
-              </button>
-            </div>
-          )}
-        </>
-      )}
+                {/* Status */}
+                <div className="text-center">
+                  <p
+                    className={`text-[10px] font-medium tracking-[0.2em] uppercase ${state === "saved" ? "text-sage-500" : "text-brass-400"}`}
+                  >
+                    {state === "saved" ? "Enregistré" : "Déjà sauvegardé"}
+                  </p>
+                </div>
+
+                {/* Title */}
+                <p className="text-sm font-medium text-parchment-50 leading-relaxed text-center font-display">
+                  {bookmark.title}
+                </p>
+
+                {/* Tags */}
+                {bookmark.tags.length > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-1.5">
+                    {bookmark.tags.map((tag) => (
+                      <span key={tag} className="tag-pill">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : bookmark.enrichmentStatus === "pending" ||
+                  bookmark.enrichmentStatus === "enriching" ? (
+                  <div className="flex items-center justify-center gap-2 text-parchment-300">
+                    <IconSpinner className="w-3 h-3 animate-spin text-brass-500" />
+                    <span className="text-[10px] italic tracking-wide">Analyse en cours...</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* Failed */}
+            {state === "failed" && (
+              <div className="space-y-4 animate-fade-up">
+                <div className="flex justify-center py-2">
+                  <div className="w-12 h-12 rounded-full border border-brick-500/30 flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-brick-500"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-brick-500">
+                    Échec
+                  </p>
+                  {error && <p className="text-[11px] text-parchment-300">{error}</p>}
+                </div>
+                <button
+                  onClick={trigger}
+                  className="btn-ghost w-full flex items-center justify-center gap-2"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
+                  </svg>
+                  Réessayer
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 pb-3 pt-1">
+        <div className="h-px bg-vault-border mb-2" />
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] text-parchment-300 tracking-wider uppercase">v0.1.0</span>
+          <span className="text-[9px] text-parchment-300 tracking-wider">
+            Agent-first bookmarks
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
