@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { Bookmark } from "@stashit/shared";
+import type { Bookmark } from "@stashbox/shared";
 
 type SaveFlowState = "idle" | "saving" | "saved" | "already-saved" | "failed";
 

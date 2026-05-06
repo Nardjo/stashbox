@@ -7,13 +7,13 @@ export type SupportedProvider = 'anthropic' | 'openai' | 'google' | 'openrouter'
 
 export default class LlmProvider {
   async getModel(): Promise<LanguageModel> {
-    const provider = env.get('STASHIT_LLM_PROVIDER') as SupportedProvider | undefined
-    const modelId = env.get('STASHIT_LLM_MODEL')
-    const apiKey = env.get('STASHIT_LLM_API_KEY')
+    const provider = env.get('STASHBOX_LLM_PROVIDER') as SupportedProvider | undefined
+    const modelId = env.get('STASHBOX_LLM_MODEL')
+    const apiKey = env.get('STASHBOX_LLM_API_KEY')
 
-    if (!provider) throw new Error('STASHIT_LLM_PROVIDER not configured')
-    if (!modelId) throw new Error('STASHIT_LLM_MODEL not configured')
-    if (!apiKey) throw new Error('STASHIT_LLM_API_KEY not configured')
+    if (!provider) throw new Error('STASHBOX_LLM_PROVIDER not configured')
+    if (!modelId) throw new Error('STASHBOX_LLM_MODEL not configured')
+    if (!apiKey) throw new Error('STASHBOX_LLM_API_KEY not configured')
 
     return resolveModel(provider, modelId, apiKey)
   }

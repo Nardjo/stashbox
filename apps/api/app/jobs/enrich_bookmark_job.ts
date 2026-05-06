@@ -1,6 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import db from '@adonisjs/lucid/services/db'
-import { detectType, type EnrichmentFailureReason } from '@stashit/shared'
+import { detectType, type EnrichmentFailureReason } from '@stashbox/shared'
 import { DateTime } from 'luxon'
 
 import Bookmark from '#models/bookmark'

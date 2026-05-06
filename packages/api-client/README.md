@@ -1,19 +1,19 @@
-# @stashit/api-client
+# @stashbox/api-client
 
-Typed fetch wrapper for the stashit API. Used internally by the `stashit` CLI and MCP server.
+Typed fetch wrapper for the stashbox API. Used internally by the `stashbox` CLI and MCP server.
 
 ## Install
 
 ```sh
-pnpm add @stashit/api-client
+pnpm add @stashbox/api-client
 ```
 
 ## Usage
 
 ```ts
-import { StashitClient } from "@stashit/api-client";
+import { StashboxClient } from "@stashbox/api-client";
 
-const client = new StashitClient({
+const client = new StashboxClient({
   baseUrl: "http://localhost:3333",
   apiKey: "your-api-key",
 });
@@ -43,5 +43,5 @@ All methods throw on non-2xx responses with the API's `error` string as the mess
 Inject a custom `fetch` for testing or edge runtimes:
 
 ```ts
-const client = new StashitClient({ baseUrl, apiKey, fetch: customFetch });
+const client = new StashboxClient({ baseUrl, apiKey, fetch: customFetch });
 ```

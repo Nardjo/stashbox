@@ -1,5 +1,5 @@
-import type { StashitClient } from "@stashit/api-client";
-import type { BookmarkType } from "@stashit/shared";
+import type { StashboxClient } from "@stashbox/api-client";
+import type { BookmarkType } from "@stashbox/shared";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 function ok(data: unknown): CallToolResult {
@@ -14,7 +14,7 @@ function err(e: unknown): CallToolResult {
 }
 
 export async function searchSemantic(
-  client: StashitClient,
+  client: StashboxClient,
   args: { query: string; limit?: number; type?: string; min_score?: number; tags?: string[] },
 ): Promise<CallToolResult> {
   try {
@@ -32,7 +32,7 @@ export async function searchSemantic(
 }
 
 export async function listRecent(
-  client: StashitClient,
+  client: StashboxClient,
   args: { limit?: number; offset?: number; type?: string },
 ): Promise<CallToolResult> {
   try {
@@ -48,7 +48,7 @@ export async function listRecent(
 }
 
 export async function listByTag(
-  client: StashitClient,
+  client: StashboxClient,
   args: { tag: string; limit?: number; offset?: number },
 ): Promise<CallToolResult> {
   try {
@@ -60,7 +60,7 @@ export async function listByTag(
 }
 
 export async function getBookmark(
-  client: StashitClient,
+  client: StashboxClient,
   args: { id: string },
 ): Promise<CallToolResult> {
   try {
@@ -72,7 +72,7 @@ export async function getBookmark(
 }
 
 export async function listTags(
-  client: StashitClient,
+  client: StashboxClient,
   args: { min_count?: number },
 ): Promise<CallToolResult> {
   try {
@@ -84,7 +84,7 @@ export async function listTags(
 }
 
 export async function listFailed(
-  client: StashitClient,
+  client: StashboxClient,
   args: { limit?: number },
 ): Promise<CallToolResult> {
   try {
@@ -96,7 +96,7 @@ export async function listFailed(
 }
 
 export async function deleteBookmark(
-  client: StashitClient,
+  client: StashboxClient,
   args: { id: string },
 ): Promise<CallToolResult> {
   try {
@@ -108,7 +108,7 @@ export async function deleteBookmark(
 }
 
 export async function refreshBookmark(
-  client: StashitClient,
+  client: StashboxClient,
   args: { id: string },
 ): Promise<CallToolResult> {
   try {

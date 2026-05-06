@@ -101,7 +101,7 @@ Unless the user explicitly says "normal mode" or "stop caveman", communicate wit
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues for `Nardjo/stashit`. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked in GitHub Issues for `Nardjo/stashbox`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

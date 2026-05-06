@@ -1,10 +1,10 @@
-import type { StashitClient } from "@stashit/api-client";
+import type { StashboxClient } from "@stashbox/api-client";
 import { formatBookmark, toJson } from "../format.js";
 
 interface GetOptions {
   id: string;
   json: boolean;
-  client: StashitClient;
+  client: StashboxClient;
   print: (line: string) => void;
 }
 

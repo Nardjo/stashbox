@@ -1,9 +1,9 @@
 ---
-"@n4rdjo/stashit": minor
-"@stashit/api-client": minor
+"@n4rdjo/stashbox": minor
+"@stashbox/api-client": minor
 ---
 
-Initial release of `stashit` CLI and `@stashit/api-client`.
+Initial release of `stashbox` CLI and `@stashbox/api-client`.
 
-- `stashit` binary: `add`, `search`, `recent`, `get`, `delete`, `refresh`, `failed`, `tags`, `config` commands with `--json` flag for agent/script use
-- `@stashit/api-client`: typed fetch wrapper for all stashit API endpoints
+- `stashbox` binary: `add`, `search`, `recent`, `get`, `delete`, `refresh`, `failed`, `tags`, `config` commands with `--json` flag for agent/script use
+- `@stashbox/api-client`: typed fetch wrapper for all stashbox API endpoints

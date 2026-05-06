@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { StashitClient } from "@stashit/api-client";
+import type { StashboxClient } from "@stashbox/api-client";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 function text(result: CallToolResult): string {
@@ -41,7 +41,7 @@ const bookmark = {
   savedFrom: ["cli" as const],
 };
 
-function makeClient(overrides: Partial<StashitClient> = {}): StashitClient {
+function makeClient(overrides: Partial<StashboxClient> = {}): StashboxClient {
   return {
     search: vi.fn().mockResolvedValue([bookmark]),
     list: vi.fn().mockResolvedValue([bookmark]),
@@ -52,7 +52,7 @@ function makeClient(overrides: Partial<StashitClient> = {}): StashitClient {
     refresh: vi.fn().mockResolvedValue({ id: bookmark.id }),
     tags: vi.fn().mockResolvedValue([{ tag: "tag1", count: 3 }]),
     ...overrides,
-  } as unknown as StashitClient;
+  } as unknown as StashboxClient;
 }
 
 describe("search_semantic", () => {

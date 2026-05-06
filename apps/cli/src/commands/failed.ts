@@ -1,9 +1,9 @@
-import type { StashitClient, ListParams } from "@stashit/api-client";
+import type { StashboxClient, ListParams } from "@stashbox/api-client";
 import { formatBookmark, toJson } from "../format.js";
 
 interface FailedOptions extends ListParams {
   json: boolean;
-  client: StashitClient;
+  client: StashboxClient;
   print: (line: string) => void;
 }
 

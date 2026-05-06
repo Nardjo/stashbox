@@ -1,6 +1,6 @@
-# StashIt — Apple Shortcut
+# Stashbox — Apple Shortcut
 
-iOS share-sheet client for StashIt. Share any URL from Safari, Twitter, YouTube, etc., and it lands as a bookmark in 1 second.
+iOS share-sheet client for Stashbox. Share any URL from Safari, Twitter, YouTube, etc., and it lands as a bookmark in 1 second.
 
 ## Install
 
@@ -26,8 +26,8 @@ Open **Shortcuts** → **+** (new shortcut) → tap the settings icon → **Set 
 
 Then add two text variables (Actions panel → search "Text"):
 
-- `StashIt API URL` → e.g. `https://api.stashit.example.com`
-- `StashIt API Key` → your API key (the plaintext returned by `node ace key:create <name>`)
+- `Stashbox API URL` → e.g. `https://api.stashbox.example.com`
+- `Stashbox API Key` → your API key (the plaintext returned by `node ace key:create <name>`)
 
 You can also store these as **shortcut input variables** so you only set them once and they persist across runs.
 
@@ -41,10 +41,10 @@ If Safari Reader fails (e.g. for Twitter or YouTube links), the Shortcut should 
 
 Add **Get Contents of URL**:
 
-- **URL**: `[StashIt API URL]/bookmarks`
+- **URL**: `[Stashbox API URL]/bookmarks`
 - **Method**: `POST`
 - **Headers**:
-  - `Authorization` → `Bearer [StashIt API Key]`
+  - `Authorization` → `Bearer [Stashbox API Key]`
   - `Content-Type` → `application/json`
 - **Request Body**: JSON
   - `url` → Shortcut Input
@@ -56,13 +56,13 @@ Add **Get Contents of URL**:
 
 Use **Get Dictionary Value** to read the HTTP status from the previous action (or use **If** on the response body).
 
-- **201** → **Show Notification**: "Saved to StashIt"
+- **201** → **Show Notification**: "Saved to Stashbox"
 - **409** → **Show Notification**: "Already saved"
-- anything else → **Show Notification**: "StashIt error: [status]"
+- anything else → **Show Notification**: "Stashbox error: [status]"
 
 #### 5. Name and pin
 
-Name the Shortcut `StashIt`. Optionally pin it to the top of the share sheet under **Shortcuts settings → Share sheet**.
+Name the Shortcut `Stashbox`. Optionally pin it to the top of the share sheet under **Shortcuts settings → Share sheet**.
 
 ## Payload reference
 
@@ -83,14 +83,14 @@ Required: `url`. The rest is optional. `sharedFrom` must be one of: `ios-shortcu
 
 | Status | Meaning                        | Shortcut behavior        |
 | ------ | ------------------------------ | ------------------------ |
-| 201    | New bookmark created           | "Saved to StashIt"       |
+| 201    | New bookmark created           | "Saved to Stashbox"      |
 | 409    | URL already saved (deduped)    | "Already saved"          |
 | 401    | Missing or invalid API key     | "Auth error — check key" |
 | 422    | Bad payload (e.g. invalid URL) | "Invalid URL"            |
-| 5xx    | Server error                   | "StashIt error — retry"  |
+| 5xx    | Server error                   | "Stashbox error — retry" |
 
 ## Troubleshooting
 
-- **"Auth error"** — regenerate the key with `node ace key:create <name>` and update the `StashIt API Key` variable.
+- **"Auth error"** — regenerate the key with `node ace key:create <name>` and update the `Stashbox API Key` variable.
 - **YouTube / Twitter share doesn't include URL text** — the share sheet sometimes passes the link as plain text. Make sure the Shortcut accepts both **URLs** and **Text** in its input settings, then coerce text to URL in the first step.
 - **Safari Reader fails on unsupported pages** — wrap the Reader action in an `If` block; on failure, POST without `title`/`content` and let the server enrich.

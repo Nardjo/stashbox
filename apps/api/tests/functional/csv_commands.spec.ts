@@ -18,7 +18,7 @@ import ExportCsv from '../../commands/export_csv.js'
 import ImportCsv from '../../commands/import_csv.js'
 
 async function tmpFile(name: string, content = ''): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'stashit-csv-'))
+  const dir = await mkdtemp(join(tmpdir(), 'stashbox-csv-'))
   const path = join(dir, name)
   if (content) await writeFile(path, content, 'utf8')
   return path
@@ -153,7 +153,7 @@ test.group('ace export:csv', (group) => {
 
   test('writes all bookmarks including failed with full columns', async ({ assert }) => {
     const { randomUUID } = await import('node:crypto')
-    const { hashUrl, normalizeUrl } = await import('@stashit/shared')
+    const { hashUrl, normalizeUrl } = await import('@stashbox/shared')
 
     const baseRow = {
       type: 'other' as const,

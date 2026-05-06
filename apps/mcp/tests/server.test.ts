@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { StashitClient } from "@stashit/api-client";
+import type { StashboxClient } from "@stashbox/api-client";
 import { describe, expect, it, vi } from "vitest";
 
 import { createServer } from "../src/server.js";
@@ -37,7 +37,7 @@ const bookmark = {
   savedFrom: ["cli" as const],
 };
 
-function makeClient(): StashitClient {
+function makeClient(): StashboxClient {
   return {
     search: vi.fn().mockResolvedValue([bookmark]),
     list: vi.fn().mockResolvedValue([bookmark]),
@@ -47,17 +47,17 @@ function makeClient(): StashitClient {
     delete: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue({ id: bookmark.id }),
     tags: vi.fn().mockResolvedValue([{ tag: "tag1", count: 3 }]),
-  } as unknown as StashitClient;
+  } as unknown as StashboxClient;
 }
 
-async function setup(stashitClient: StashitClient) {
-  const server = createServer(stashitClient);
+async function setup(stashboxClient: StashboxClient) {
+  const server = createServer(stashboxClient);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   const mcpClient = new Client({ name: "test-client", version: "1.0.0" }, { capabilities: {} });
   await Promise.all([server.connect(serverTransport), mcpClient.connect(clientTransport)]);
 
-  return { mcpClient, server, stashitClient };
+  return { mcpClient, server, stashboxClient };
 }
 
 describe("MCP server tool registration", () => {
@@ -88,15 +88,15 @@ describe("MCP server tool registration", () => {
 
 describe("search_semantic via MCP", () => {
   it("routes call to client.search", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({
       name: "search_semantic",
       arguments: { query: "typescript" },
     });
 
-    expect(stashitClient.search).toHaveBeenCalledWith(
+    expect(stashboxClient.search).toHaveBeenCalledWith(
       expect.objectContaining({ query: "typescript" }),
     );
     expect(result.isError).toBeFalsy();
@@ -109,12 +109,12 @@ describe("search_semantic via MCP", () => {
 
 describe("list_recent via MCP", () => {
   it("routes call to client.list", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({ name: "list_recent", arguments: {} });
 
-    expect(stashitClient.list).toHaveBeenCalled();
+    expect(stashboxClient.list).toHaveBeenCalled();
     expect(result.isError).toBeFalsy();
 
     await server.close();
@@ -123,15 +123,17 @@ describe("list_recent via MCP", () => {
 
 describe("list_by_tag via MCP", () => {
   it("routes call to client.list with tag", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({
       name: "list_by_tag",
       arguments: { tag: "typescript" },
     });
 
-    expect(stashitClient.list).toHaveBeenCalledWith(expect.objectContaining({ tag: "typescript" }));
+    expect(stashboxClient.list).toHaveBeenCalledWith(
+      expect.objectContaining({ tag: "typescript" }),
+    );
     expect(result.isError).toBeFalsy();
 
     await server.close();
@@ -140,15 +142,15 @@ describe("list_by_tag via MCP", () => {
 
 describe("get_bookmark via MCP", () => {
   it("routes call to client.get", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({
       name: "get_bookmark",
       arguments: { id: bookmark.id },
     });
 
-    expect(stashitClient.get).toHaveBeenCalledWith(bookmark.id);
+    expect(stashboxClient.get).toHaveBeenCalledWith(bookmark.id);
     expect(result.isError).toBeFalsy();
 
     await server.close();
@@ -157,12 +159,12 @@ describe("get_bookmark via MCP", () => {
 
 describe("list_tags via MCP", () => {
   it("routes call to client.tags", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({ name: "list_tags", arguments: {} });
 
-    expect(stashitClient.tags).toHaveBeenCalled();
+    expect(stashboxClient.tags).toHaveBeenCalled();
     expect(result.isError).toBeFalsy();
 
     await server.close();
@@ -171,12 +173,12 @@ describe("list_tags via MCP", () => {
 
 describe("list_failed via MCP", () => {
   it("routes call to client.failed", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({ name: "list_failed", arguments: {} });
 
-    expect(stashitClient.failed).toHaveBeenCalled();
+    expect(stashboxClient.failed).toHaveBeenCalled();
     expect(result.isError).toBeFalsy();
 
     await server.close();
@@ -185,15 +187,15 @@ describe("list_failed via MCP", () => {
 
 describe("delete_bookmark via MCP", () => {
   it("routes call to client.delete", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({
       name: "delete_bookmark",
       arguments: { id: bookmark.id },
     });
 
-    expect(stashitClient.delete).toHaveBeenCalledWith(bookmark.id);
+    expect(stashboxClient.delete).toHaveBeenCalledWith(bookmark.id);
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse(text(result));
     expect(parsed).toMatchObject({ deleted: true, id: bookmark.id });
@@ -204,15 +206,15 @@ describe("delete_bookmark via MCP", () => {
 
 describe("refresh_bookmark via MCP", () => {
   it("routes call to client.refresh", async () => {
-    const stashitClient = makeClient();
-    const { mcpClient, server } = await setup(stashitClient);
+    const stashboxClient = makeClient();
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({
       name: "refresh_bookmark",
       arguments: { id: bookmark.id },
     });
 
-    expect(stashitClient.refresh).toHaveBeenCalledWith(bookmark.id);
+    expect(stashboxClient.refresh).toHaveBeenCalledWith(bookmark.id);
     expect(result.isError).toBeFalsy();
 
     await server.close();
@@ -221,10 +223,10 @@ describe("refresh_bookmark via MCP", () => {
 
 describe("error surface", () => {
   it("returns isError with readable message on API failure", async () => {
-    const stashitClient = makeClient();
-    vi.mocked(stashitClient.search).mockRejectedValue(new Error("Unauthorized: invalid API key"));
+    const stashboxClient = makeClient();
+    vi.mocked(stashboxClient.search).mockRejectedValue(new Error("Unauthorized: invalid API key"));
 
-    const { mcpClient, server } = await setup(stashitClient);
+    const { mcpClient, server } = await setup(stashboxClient);
 
     const result = await mcpClient.callTool({ name: "search_semantic", arguments: { query: "q" } });
 

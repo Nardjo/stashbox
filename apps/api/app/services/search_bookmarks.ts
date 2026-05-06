@@ -1,5 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
-import type { BookmarkType } from '@stashit/shared'
+import type { BookmarkType } from '@stashbox/shared'
 
 export interface SearchBookmarksInput {
   queryEmbedding: number[]

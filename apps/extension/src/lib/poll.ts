@@ -1,4 +1,4 @@
-import type { Bookmark } from "@stashit/shared";
+import type { Bookmark } from "@stashbox/shared";
 
 const TERMINAL_STATUSES = new Set<Bookmark["enrichmentStatus"]>(["done", "degraded", "failed"]);
 

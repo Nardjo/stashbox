@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import type { HttpContext } from '@adonisjs/core/http'
-import { hashUrl, normalizeUrl } from '@stashit/shared'
+import { hashUrl, normalizeUrl } from '@stashbox/shared'
 
 import db from '@adonisjs/lucid/services/db'
 import vine from '@vinejs/vine'

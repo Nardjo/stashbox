@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { StashitClient } from "@stashit/api-client";
+import type { StashboxClient } from "@stashbox/api-client";
 import { z } from "zod";
 
 import {
@@ -13,9 +13,9 @@ import {
   searchSemantic,
 } from "./tools.js";
 
-export function createServer(client: StashitClient): McpServer {
+export function createServer(client: StashboxClient): McpServer {
   const server = new McpServer({
-    name: "stashit",
+    name: "stashbox",
     version: "0.1.0",
   });
 

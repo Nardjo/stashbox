@@ -19,10 +19,10 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # ─── builder ───────────────────────────────────────────────────────────────────
 FROM deps AS builder
 COPY packages/shared ./packages/shared
-RUN pnpm --filter @stashit/shared build
+RUN pnpm --filter @stashbox/shared build
 
 COPY apps/api ./apps/api
-RUN pnpm --filter @stashit/api build
+RUN pnpm --filter @stashbox/api build
 
 # ─── runner ────────────────────────────────────────────────────────────────────
 FROM base AS runner
@@ -40,7 +40,7 @@ COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/api/build ./apps/api/build
 
-RUN pnpm install --frozen-lockfile --prod --filter @stashit/api... --ignore-scripts && \
+RUN pnpm install --frozen-lockfile --prod --filter @stashbox/api... --ignore-scripts && \
     chown -R app:app /app
 
 USER app

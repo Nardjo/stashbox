@@ -7,8 +7,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@stashit/shared": new URL("../../packages/shared/src/index.ts", import.meta.url).pathname,
-      "@stashit/api-client": new URL("../../packages/api-client/src/index.ts", import.meta.url)
+      "@stashbox/shared": new URL("../../packages/shared/src/index.ts", import.meta.url).pathname,
+      "@stashbox/api-client": new URL("../../packages/api-client/src/index.ts", import.meta.url)
         .pathname,
     },
   },
