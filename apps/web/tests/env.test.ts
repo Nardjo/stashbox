@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseEnv } from "/Users/jordanbastin/Developer/stashbox/apps/web/src/env.ts";
+import { parseEnv } from "~/env.ts";
 
 describe("env validation", () => {
   it("throws when STASHBOX_API_URL is missing", () => {
