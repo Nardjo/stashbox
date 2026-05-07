@@ -1,38 +1,69 @@
 import { StashboxClient } from "@stashbox/api-client";
 import type { AddParams, ListParams, SearchParams } from "@stashbox/api-client";
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, serverOnly } from "@tanstack/react-start";
+import { z } from "zod";
 import { env } from "../config.ts";
 
 type ClientOptions = {
   fetch?: typeof globalThis.fetch;
 };
 
-type ServerFnBuilderWithRuntimeHandler<TData, TResponse> = {
-  handler: (
-    extractedFn: undefined,
-    serverFn: (ctx: { data: TData }) => Promise<TResponse>,
-  ) => unknown;
-};
+const bookmarkTypeSchema = z.enum(["tweet", "youtube", "article", "image", "pdf", "other"]);
 
-type ServerFunction<TData, TResponse> = {
-  (opts: { data: TData }): Promise<TResponse>;
-  __executeServer(opts: {
-    method: "GET" | "POST";
-    data: TData;
-    signal: AbortSignal;
-  }): Promise<{ result: TResponse; error: unknown; context: unknown }>;
-};
+const listBookmarksSchema = z
+  .object({
+    limit: z.number().int().positive().max(100).optional(),
+    offset: z.number().int().nonnegative().optional(),
+    type: bookmarkTypeSchema.optional(),
+    tag: z.string().min(1).max(100).optional(),
+  })
+  .default({});
+
+const searchBookmarksSchema = z.object({
+  query: z.string().min(1).max(1_000),
+  limit: z.number().int().positive().max(100).optional(),
+  type: bookmarkTypeSchema.optional(),
+  minScore: z.number().min(0).max(1).optional(),
+  tags: z.array(z.string().min(1).max(100)).max(20).optional(),
+});
+
+const addBookmarkSchema = z.object({
+  url: z
+    .string()
+    .url()
+    .refine((value) => ["http:", "https:"].includes(new URL(value).protocol), {
+      message: "URL must use http or https",
+    }),
+  content: z.string().max(200_000).optional(),
+});
+
+const deleteBookmarkSchema = z.object({
+  id: z.string().uuid(),
+});
 
 let client: StashboxClient | undefined;
 
-export function getStashboxServerClient(options: ClientOptions = {}): StashboxClient {
+export const getStashboxServerClient = serverOnly((options: ClientOptions = {}): StashboxClient => {
   if (options.fetch) {
     return createClient(options.fetch);
   }
 
   client ??= createClient();
   return client;
-}
+});
+
+export const createStashboxServerOperations = serverOnly((client = getStashboxServerClient()) => {
+  return {
+    listBookmarks: async (params: ListParams = {}) =>
+      client.list(listBookmarksSchema.parse(params)),
+    searchBookmarks: async (params: SearchParams) =>
+      client.search(searchBookmarksSchema.parse(params)),
+    addBookmark: async (params: AddParams) => client.add(addBookmarkSchema.parse(params)),
+    deleteBookmark: async ({ id }: { id: string }) =>
+      client.delete(deleteBookmarkSchema.parse({ id }).id),
+    listTags: async () => client.tags(),
+  };
+});
 
 function createClient(fetch?: typeof globalThis.fetch): StashboxClient {
   return new StashboxClient({
@@ -42,55 +73,28 @@ function createClient(fetch?: typeof globalThis.fetch): StashboxClient {
   });
 }
 
-function withServerHandler<TData, TResponse>(
-  builder: { handler: unknown },
-  serverFn: (ctx: { data: TData }) => Promise<TResponse>,
-): ServerFunction<TData, TResponse> {
-  return (builder.handler as ServerFnBuilderWithRuntimeHandler<TData, TResponse>["handler"])(
-    undefined,
-    serverFn,
-  ) as ServerFunction<TData, TResponse>;
-}
+export const listBookmarks = createServerFn({ method: "GET" })
+  .validator((data: ListParams = {}) => listBookmarksSchema.parse(data))
+  .type("dynamic")
+  .handler(async ({ data }): Promise<any> => createStashboxServerOperations().listBookmarks(data));
 
-const listBookmarksBuilder = createServerFn({ method: "GET" })
-  .validator((data: ListParams = {}) => data)
-  .type("dynamic");
+export const searchBookmarks = createServerFn({ method: "POST" })
+  .validator((data: SearchParams) => searchBookmarksSchema.parse(data))
+  .type("dynamic")
+  .handler(
+    async ({ data }): Promise<any> => createStashboxServerOperations().searchBookmarks(data),
+  );
 
-export const listBookmarks = withServerHandler<
-  ListParams,
-  Awaited<ReturnType<StashboxClient["list"]>>
->(listBookmarksBuilder, async ({ data }) => getStashboxServerClient().list(data));
+export const addBookmark = createServerFn({ method: "POST" })
+  .validator((data: AddParams) => addBookmarkSchema.parse(data))
+  .type("dynamic")
+  .handler(async ({ data }): Promise<any> => createStashboxServerOperations().addBookmark(data));
 
-const searchBookmarksBuilder = createServerFn({ method: "POST" })
-  .validator((data: SearchParams) => data)
-  .type("dynamic");
+export const deleteBookmark = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => deleteBookmarkSchema.parse(data))
+  .type("dynamic")
+  .handler(async ({ data }) => createStashboxServerOperations().deleteBookmark(data));
 
-export const searchBookmarks = withServerHandler<
-  SearchParams,
-  Awaited<ReturnType<StashboxClient["search"]>>
->(searchBookmarksBuilder, async ({ data }) => getStashboxServerClient().search(data));
-
-const addBookmarkBuilder = createServerFn({ method: "POST" })
-  .validator((data: AddParams) => data)
-  .type("dynamic");
-
-export const addBookmark = withServerHandler<AddParams, Awaited<ReturnType<StashboxClient["add"]>>>(
-  addBookmarkBuilder,
-  async ({ data }) => getStashboxServerClient().add(data),
-);
-
-const deleteBookmarkBuilder = createServerFn({ method: "POST" })
-  .validator((data: { id: string }) => data)
-  .type("dynamic");
-
-export const deleteBookmark = withServerHandler<
-  { id: string },
-  Awaited<ReturnType<StashboxClient["delete"]>>
->(deleteBookmarkBuilder, async ({ data }) => getStashboxServerClient().delete(data.id));
-
-const listTagsBuilder = createServerFn({ method: "GET" }).type("dynamic");
-
-export const listTags = withServerHandler<undefined, Awaited<ReturnType<StashboxClient["tags"]>>>(
-  listTagsBuilder,
-  async () => getStashboxServerClient().tags(),
-);
+export const listTags = createServerFn({ method: "GET" })
+  .type("dynamic")
+  .handler(async () => createStashboxServerOperations().listTags());

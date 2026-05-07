@@ -47,15 +47,10 @@ describe("Bookmark server functions", () => {
       return Response.json({ results: [bookmark] });
     });
 
-    const { listBookmarks } = await import("~/server/stashbox.ts");
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
 
-    await expect(
-      listBookmarks.__executeServer({
-        method: "GET",
-        data: { limit: 10, offset: 20 },
-        signal: new AbortController().signal,
-      }),
-    ).resolves.toMatchObject({ result: [bookmark], error: undefined });
+    await expect(operations.listBookmarks({ limit: 10, offset: 20 })).resolves.toEqual([bookmark]);
     expect(requests[0]?.url).toBe("https://stashbox.example/bookmarks?limit=10&offset=20");
   });
 
@@ -71,15 +66,16 @@ describe("Bookmark server functions", () => {
       return Response.json({ results: [bookmark] });
     });
 
-    const { searchBookmarks } = await import("~/server/stashbox.ts");
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
 
     await expect(
-      searchBookmarks.__executeServer({
-        method: "POST",
-        data: { query: "systems thinking", type: "article", tags: ["architecture"] },
-        signal: new AbortController().signal,
+      operations.searchBookmarks({
+        query: "systems thinking",
+        type: "article",
+        tags: ["architecture"],
       }),
-    ).resolves.toMatchObject({ result: [bookmark], error: undefined });
+    ).resolves.toEqual([bookmark]);
     expect(requests[0]?.url).toBe("https://stashbox.example/search");
     expect(requests[0]?.init?.method).toBe("POST");
     expect(JSON.parse(String(requests[0]?.init?.body))).toEqual({
@@ -101,17 +97,31 @@ describe("Bookmark server functions", () => {
       return Response.json(bookmark);
     });
 
-    const { addBookmark } = await import("~/server/stashbox.ts");
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
 
-    await expect(
-      addBookmark.__executeServer({
-        method: "POST",
-        data: { url: "https://example.com/new" },
-        signal: new AbortController().signal,
-      }),
-    ).resolves.toMatchObject({ result: bookmark, error: undefined });
+    await expect(operations.addBookmark({ url: "https://example.com/new" })).resolves.toEqual(
+      bookmark,
+    );
     expect(requests[0]?.url).toBe("https://stashbox.example/bookmarks");
     expect(JSON.parse(String(requests[0]?.init?.body))).toEqual({ url: "https://example.com/new" });
+  });
+
+  it("rejects non-http Bookmark URLs before calling the Stashbox API", async () => {
+    vi.stubEnv("STASHBOX_API_URL", "https://stashbox.example");
+    vi.stubEnv("STASHBOX_API_KEY", "secret-key");
+    vi.resetModules();
+
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
+
+    await expect(operations.addBookmark({ url: "javascript:alert(1)" })).rejects.toThrow(
+      "URL must use http or https",
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("deletes a Bookmark through the server-side Stashbox API client", async () => {
@@ -125,15 +135,12 @@ describe("Bookmark server functions", () => {
       return new Response(null, { status: 204 });
     });
 
-    const { deleteBookmark } = await import("~/server/stashbox.ts");
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
 
     await expect(
-      deleteBookmark.__executeServer({
-        method: "POST",
-        data: { id: "00000000-0000-4000-8000-000000000001" },
-        signal: new AbortController().signal,
-      }),
-    ).resolves.toMatchObject({ result: undefined, error: undefined });
+      operations.deleteBookmark({ id: "00000000-0000-4000-8000-000000000001" }),
+    ).resolves.toBeUndefined();
     expect(requests[0]?.url).toBe(
       "https://stashbox.example/bookmarks/00000000-0000-4000-8000-000000000001",
     );
@@ -152,15 +159,10 @@ describe("Bookmark server functions", () => {
       return Response.json({ results: tags });
     });
 
-    const { listTags } = await import("~/server/stashbox.ts");
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
 
-    await expect(
-      listTags.__executeServer({
-        method: "GET",
-        data: undefined,
-        signal: new AbortController().signal,
-      }),
-    ).resolves.toMatchObject({ result: tags, error: undefined });
+    await expect(operations.listTags()).resolves.toEqual(tags);
     expect(requests[0]?.url).toBe("https://stashbox.example/tags");
   });
 });
