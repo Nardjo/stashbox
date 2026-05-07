@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, StashitClient } from "@stashit/api-client";
-import type { Bookmark } from "@stashit/shared";
+import { ApiError, StashboxClient } from "@stashbox/api-client";
+import type { Bookmark } from "@stashbox/shared";
 import { useSaveFlow } from "../hooks/useSaveFlow.js";
 import { getOptions, saveOptions } from "../lib/options.js";
 import { pollUntilDone } from "../lib/poll.js";
@@ -104,7 +104,7 @@ function IconSeal({ className }: { className?: string }) {
         letterSpacing="2"
         opacity="0.7"
       >
-        STASHIT
+        STASHBOX
       </text>
       <path d="M20 34h24M22 38h20M24 42h16" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
       <circle cx="32" cy="48" r="2" fill="currentColor" opacity="0.4" />
@@ -113,7 +113,7 @@ function IconSeal({ className }: { className?: string }) {
 }
 
 /* ─── Settings ─── */
-function SettingsForm({ onSaved }: { onSaved: (client: StashitClient) => void }) {
+function SettingsForm({ onSaved }: { onSaved: (client: StashboxClient) => void }) {
   const [apiUrl, setApiUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
@@ -133,7 +133,7 @@ function SettingsForm({ onSaved }: { onSaved: (client: StashitClient) => void })
     setApiUrl(cleanUrl);
     setApiKey(cleanKey);
     await saveOptions({ apiUrl: cleanUrl, apiKey: cleanKey });
-    onSaved(new StashitClient({ baseUrl: cleanUrl, apiKey: cleanKey }));
+    onSaved(new StashboxClient({ baseUrl: cleanUrl, apiKey: cleanKey }));
     setSaving(false);
   };
 
@@ -147,7 +147,7 @@ function SettingsForm({ onSaved }: { onSaved: (client: StashitClient) => void })
           type="url"
           value={apiUrl}
           onChange={(e) => setApiUrl(e.target.value)}
-          placeholder="https://stashit.example.com"
+          placeholder="https://stashbox.example.com"
           required
           className="input-vault w-full"
         />
@@ -175,12 +175,12 @@ function SettingsForm({ onSaved }: { onSaved: (client: StashitClient) => void })
 /* ─── Main Popup ─── */
 export function Popup() {
   const [ready, setReady] = useState(false);
-  const [client, setClient] = useState<StashitClient | null>(null);
+  const [client, setClient] = useState<StashboxClient | null>(null);
   const [view, setView] = useState<"main" | "settings">("main");
 
   useEffect(() => {
     getOptions().then(({ apiUrl, apiKey }) => {
-      if (apiUrl && apiKey) setClient(new StashitClient({ baseUrl: apiUrl, apiKey }));
+      if (apiUrl && apiKey) setClient(new StashboxClient({ baseUrl: apiUrl, apiKey }));
       setReady(true);
     });
   }, []);
@@ -251,7 +251,7 @@ export function Popup() {
             </button>
           ) : null}
           <h1 className="font-display text-base font-semibold tracking-wide text-parchment-50">
-            {showSettings ? "Paramètres" : "stashit"}
+            {showSettings ? "Paramètres" : "stashbox"}
           </h1>
         </div>
         {client && (

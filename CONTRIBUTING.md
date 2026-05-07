@@ -3,8 +3,8 @@
 Quick start:
 
 ```bash
-git clone https://github.com/Nardjo/stashit.git
-cd stashit
+git clone https://github.com/Nardjo/stashbox.git
+cd stashbox
 pnpm install
 pnpm dev
 ```

@@ -3,7 +3,7 @@ import { createReadStream } from 'node:fs'
 
 import { args, BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
-import { hashUrl, normalizeUrl } from '@stashit/shared'
+import { hashUrl, normalizeUrl } from '@stashbox/shared'
 import { parse as parseCsv } from 'csv-parse'
 import { DateTime } from 'luxon'
 

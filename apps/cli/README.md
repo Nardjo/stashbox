@@ -1,25 +1,25 @@
-# stashit
+# stashbox
 
-CLI for [stashit](https://github.com/Nardjo/stashit) — save and search bookmarks from the terminal or your scripts.
+CLI for [stashbox](https://github.com/Nardjo/stashbox) — save and search bookmarks from the terminal or your scripts.
 
 ## Install
 
 ```sh
-npm install -g @n4rdjo/stashit
+npm install -g @n4rdjo/stashbox
 # or
-npx @n4rdjo/stashit --help
+npx @n4rdjo/stashbox --help
 ```
 
 ## Setup
 
-Point the CLI at your running stashit API:
+Point the CLI at your running stashbox API:
 
 ```sh
-stashit config set apiUrl http://localhost:3333
-stashit config set apiKey <your-api-key>
+stashbox config set apiUrl http://localhost:3333
+stashbox config set apiKey <your-api-key>
 ```
 
-Config is stored in `~/.stashit/config.json`.
+Config is stored in `~/.stashbox/config.json`.
 
 ## Commands
 
@@ -28,8 +28,8 @@ Config is stored in `~/.stashit/config.json`.
 Save a new bookmark.
 
 ```sh
-stashit add https://example.com
-stashit add https://example.com --json
+stashbox add https://example.com
+stashbox add https://example.com --json
 ```
 
 ### `search <query>`
@@ -37,9 +37,9 @@ stashit add https://example.com --json
 Semantic search across your bookmarks.
 
 ```sh
-stashit search "typescript generics"
-stashit search "ml papers" --type article --limit 5
-stashit search "video tutorials" --min-score 0.5 --json
+stashbox search "typescript generics"
+stashbox search "ml papers" --type article --limit 5
+stashbox search "video tutorials" --min-score 0.5 --json
 ```
 
 ### `recent`
@@ -47,9 +47,9 @@ stashit search "video tutorials" --min-score 0.5 --json
 List recent bookmarks (ordered by save date).
 
 ```sh
-stashit recent
-stashit recent --limit 20 --tag dev
-stashit recent --type youtube --json
+stashbox recent
+stashbox recent --limit 20 --tag dev
+stashbox recent --type youtube --json
 ```
 
 ### `get <id>`
@@ -57,8 +57,8 @@ stashit recent --type youtube --json
 Get a single bookmark by ID.
 
 ```sh
-stashit get 550e8400-e29b-41d4-a716-446655440000
-stashit get <id> --json
+stashbox get 550e8400-e29b-41d4-a716-446655440000
+stashbox get <id> --json
 ```
 
 ### `delete <id>`
@@ -66,8 +66,8 @@ stashit get <id> --json
 Delete a bookmark.
 
 ```sh
-stashit delete <id>
-stashit delete <id> --json
+stashbox delete <id>
+stashbox delete <id> --json
 ```
 
 ### `refresh <id>`
@@ -75,7 +75,7 @@ stashit delete <id> --json
 Re-enrich a bookmark (re-fetch + re-tag + re-embed).
 
 ```sh
-stashit refresh <id>
+stashbox refresh <id>
 ```
 
 ### `failed`
@@ -83,8 +83,8 @@ stashit refresh <id>
 List bookmarks that failed enrichment.
 
 ```sh
-stashit failed
-stashit failed --limit 50 --json
+stashbox failed
+stashbox failed --limit 50 --json
 ```
 
 ### `tags`
@@ -92,9 +92,9 @@ stashit failed --limit 50 --json
 List all tags and their bookmark count.
 
 ```sh
-stashit tags
-stashit tags --min-count 3
-stashit tags --json
+stashbox tags
+stashbox tags --min-count 3
+stashbox tags --json
 ```
 
 ### `config`
@@ -102,9 +102,9 @@ stashit tags --json
 Read and write local config.
 
 ```sh
-stashit config set apiUrl http://localhost:3333
-stashit config set apiKey sk-...
-stashit config get apiUrl
+stashbox config set apiUrl http://localhost:3333
+stashbox config set apiKey sk-...
+stashbox config get apiUrl
 ```
 
 ## JSON output
@@ -112,8 +112,8 @@ stashit config get apiUrl
 Every command accepts `--json` for machine-readable output, useful in shell scripts or agent pipelines:
 
 ```sh
-stashit search "typescript" --json | jq '.[0].url'
-stashit recent --json | jq 'map(select(.tags | index("dev")))'
+stashbox search "typescript" --json | jq '.[0].url'
+stashbox recent --json | jq 'map(select(.tags | index("dev")))'
 ```
 
 ## Exit codes

@@ -1,4 +1,4 @@
-import type { BookmarkType } from '@stashit/shared'
+import type { BookmarkType } from '@stashbox/shared'
 
 import env from '#start/env'
 
@@ -33,10 +33,10 @@ export default class FetchProvider {
 }
 
 async function fetchViaJina(url: string): Promise<FetchOutcome> {
-  const apiKey = env.get('STASHIT_FETCH_API_KEY')
+  const apiKey = env.get('STASHBOX_FETCH_API_KEY')
   const headers: Record<string, string> = {
     'Accept': 'text/markdown',
-    'User-Agent': 'stashit/1.0',
+    'User-Agent': 'stashbox/1.0',
   }
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`
 

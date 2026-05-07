@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { hashUrl, normalizeUrl } from '@stashit/shared'
+import { hashUrl, normalizeUrl } from '@stashbox/shared'
 
 import { authHeader } from '#tests/helpers/api_key'
 

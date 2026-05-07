@@ -13,19 +13,19 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   REDIS_URL: Env.schema.string.optional(),
 
-  STASHIT_LLM_PROVIDER: Env.schema.enum.optional([
+  STASHBOX_LLM_PROVIDER: Env.schema.enum.optional([
     'anthropic',
     'openai',
     'google',
     'openrouter',
   ] as const),
-  STASHIT_LLM_MODEL: Env.schema.string.optional(),
-  STASHIT_LLM_API_KEY: Env.schema.string.optional(),
+  STASHBOX_LLM_MODEL: Env.schema.string.optional(),
+  STASHBOX_LLM_API_KEY: Env.schema.string.optional(),
 
-  STASHIT_EMBEDDING_PROVIDER: Env.schema.enum.optional(['openai', 'openrouter'] as const),
-  STASHIT_EMBEDDING_MODEL: Env.schema.string.optional(),
-  STASHIT_EMBEDDING_API_KEY: Env.schema.string.optional(),
+  STASHBOX_EMBEDDING_PROVIDER: Env.schema.enum.optional(['openai', 'openrouter'] as const),
+  STASHBOX_EMBEDDING_MODEL: Env.schema.string.optional(),
+  STASHBOX_EMBEDDING_API_KEY: Env.schema.string.optional(),
 
-  STASHIT_FETCH_PROVIDER: Env.schema.enum.optional(['jina'] as const),
-  STASHIT_FETCH_API_KEY: Env.schema.string.optional(),
+  STASHBOX_FETCH_PROVIDER: Env.schema.enum.optional(['jina'] as const),
+  STASHBOX_FETCH_API_KEY: Env.schema.string.optional(),
 })

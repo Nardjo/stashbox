@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import db from '@adonisjs/lucid/services/db'
-import { hashUrl } from '@stashit/shared'
+import { hashUrl } from '@stashbox/shared'
 
 export interface SeedBookmarkInput {
   url: string

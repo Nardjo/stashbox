@@ -1,11 +1,11 @@
-import type { StashitClient } from "@stashit/api-client";
-import type { BookmarkType } from "@stashit/shared";
+import type { StashboxClient } from "@stashbox/api-client";
+import type { BookmarkType } from "@stashbox/shared";
 import { formatBookmark, toJson } from "../format.js";
 
 interface SearchOptions {
   query: string;
   json: boolean;
-  client: StashitClient;
+  client: StashboxClient;
   print: (line: string) => void;
   limit?: number;
   type?: BookmarkType;

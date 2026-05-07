@@ -1,5 +1,5 @@
 import { defineCommand, runMain } from "citty";
-import { StashitClient } from "@stashit/api-client";
+import { StashboxClient } from "@stashbox/api-client";
 import { loadConfig, setConfig, getConfig } from "./config.js";
 import { runSearch } from "./commands/search.js";
 import { runList } from "./commands/list.js";
@@ -12,9 +12,9 @@ import { runTags } from "./commands/tags.js";
 
 const print = (line: string) => console.log(line);
 
-async function withClient<T>(fn: (client: StashitClient) => Promise<T>): Promise<T> {
+async function withClient<T>(fn: (client: StashboxClient) => Promise<T>): Promise<T> {
   const config = await loadConfig();
-  const client = new StashitClient({ baseUrl: config.apiUrl, apiKey: config.apiKey });
+  const client = new StashboxClient({ baseUrl: config.apiUrl, apiKey: config.apiKey });
   return fn(client);
 }
 
@@ -146,7 +146,7 @@ const tagsCmd = defineCommand({
 });
 
 const configCmd = defineCommand({
-  meta: { description: "Manage local config (~/.stashit/config.json)" },
+  meta: { description: "Manage local config (~/.stashbox/config.json)" },
   subCommands: {
     set: defineCommand({
       meta: { description: "Set a config value" },
@@ -174,7 +174,7 @@ const configCmd = defineCommand({
 
 const main = defineCommand({
   meta: {
-    name: "stashit",
+    name: "stashbox",
     version: "0.1.0",
     description: "Save and search bookmarks from the terminal",
   },

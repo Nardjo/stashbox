@@ -11,6 +11,8 @@ async function fetchAllBookmarks() {
   let cursor = null;
   let hasMore = true;
 
+  let prevCursor = null;
+
   while (hasMore) {
     const url = new URL(`${BASE_URL}/bookmarks`);
     url.searchParams.set("limit", "100");
@@ -27,7 +29,8 @@ async function fetchAllBookmarks() {
 
     const data = await res.json();
     bookmarks.push(...data.bookmarks);
-    hasMore = data.hasMore;
+    hasMore = data.hasMore && data.nextCursor && data.nextCursor !== prevCursor;
+    prevCursor = cursor;
     cursor = data.nextCursor;
 
     console.error(`Fetched ${bookmarks.length} bookmarks...`);
@@ -73,7 +76,7 @@ async function main() {
   const outputPath = "/tmp/saveit-export.csv";
   let output = "";
 
-  // CSV header for stashit import
+  // CSV header for stashbox import
   const headers = ["url", "title", "description", "tags", "type", "enrichment_status", "saved_at"];
   output += headers.join(",") + "\n";
 

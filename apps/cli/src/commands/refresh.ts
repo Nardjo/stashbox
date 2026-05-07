@@ -1,11 +1,11 @@
-import type { StashitClient } from "@stashit/api-client";
+import type { StashboxClient } from "@stashbox/api-client";
 import pc from "picocolors";
 import { toJson } from "../format.js";
 
 interface RefreshOptions {
   id: string;
   json: boolean;
-  client: StashitClient;
+  client: StashboxClient;
   print: (line: string) => void;
 }
 

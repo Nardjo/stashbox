@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StashitClient } from "../src/client.js";
-import type { Bookmark } from "@stashit/shared";
+import { StashboxClient } from "../src/client.js";
+import type { Bookmark } from "@stashbox/shared";
 
 const BASE_URL = "http://localhost:3333";
 const API_KEY = "test-key";
@@ -31,13 +31,13 @@ function makeBookmark(overrides: Partial<Bookmark> = {}): Bookmark {
   };
 }
 
-describe("StashitClient", () => {
-  let client: StashitClient;
+describe("StashboxClient", () => {
+  let client: StashboxClient;
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     fetchMock = vi.fn();
-    client = new StashitClient({ baseUrl: BASE_URL, apiKey: API_KEY, fetch: fetchMock });
+    client = new StashboxClient({ baseUrl: BASE_URL, apiKey: API_KEY, fetch: fetchMock });
   });
 
   describe("search", () => {

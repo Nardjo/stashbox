@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Bookmark } from "@stashit/shared";
+import type { Bookmark } from "@stashbox/shared";
 import { pollUntilDone } from "../src/lib/poll.js";
 
 function makeBookmark(enrichmentStatus: Bookmark["enrichmentStatus"]): Bookmark {

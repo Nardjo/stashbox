@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { StashitClient } from "@stashit/api-client";
-import type { Bookmark } from "@stashit/shared";
+import { StashboxClient } from "@stashbox/api-client";
+import type { Bookmark } from "@stashbox/shared";
 import { getOptions, saveOptions } from "../lib/options.js";
 
 /* ─── CSV helpers ─── */
@@ -152,7 +152,7 @@ export function Options() {
 
   const buildClient = () => {
     if (!apiUrl || !apiKey) return null;
-    return new StashitClient({ baseUrl: apiUrl, apiKey });
+    return new StashboxClient({ baseUrl: apiUrl, apiKey });
   };
 
   /* ── Export ── */
@@ -179,7 +179,7 @@ export function Options() {
 
       const csv = bookmarksToCsv(all);
       const date = new Date().toISOString().split("T")[0];
-      downloadFile(csv, `stashit-export-${date}.csv`, "text/csv;charset=utf-8;");
+      downloadFile(csv, `stashbox-export-${date}.csv`, "text/csv;charset=utf-8;");
     } catch (err) {
       alert(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -264,7 +264,7 @@ export function Options() {
         <div className="vault-card rounded-xl p-8 space-y-6">
           <div className="text-center space-y-2">
             <h1 className="font-display text-2xl font-semibold text-parchment-50 tracking-wide">
-              stashit
+              stashbox
             </h1>
             <p className="text-xs text-parchment-200 tracking-wide">Configuration de l'extension</p>
           </div>
@@ -281,7 +281,7 @@ export function Options() {
                 type="url"
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="https://stashit.example.com"
+                placeholder="https://stashbox.example.com"
                 required
                 className="input-vault w-full"
               />
@@ -320,7 +320,7 @@ export function Options() {
 
           <p className="text-[10px] text-parchment-300 text-center leading-relaxed">
             La clé API est stockée localement dans le navigateur. Elle n'est jamais envoyée ailleurs
-            que vers votre instance stashit.
+            que vers votre instance stashbox.
           </p>
         </div>
 
@@ -332,7 +332,7 @@ export function Options() {
             </div>
             <div>
               <h2 className="text-sm font-medium text-parchment-50">Importer</h2>
-              <p className="text-[10px] text-parchment-300">CSV au format stashit</p>
+              <p className="text-[10px] text-parchment-300">CSV au format stashbox</p>
             </div>
           </div>
 

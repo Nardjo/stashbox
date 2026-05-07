@@ -1,13 +1,13 @@
 {
-  "name": "@stashit/mcp",
+  "name": "@stashbox/mcp",
   "version": "0.1.0",
-  "description": "stashit MCP server — expose bookmarks to AI agents",
+  "description": "stashbox MCP server — expose bookmarks to AI agents",
   "type": "module",
   "publishConfig": {
     "access": "public"
   },
   "bin": {
-    "stashit-mcp": "dist/index.js"
+    "stashbox-mcp": "dist/index.js"
   },
   "files": [
     "dist"
@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@stashit/api-client": "workspace:*",
-    "@stashit/shared": "workspace:*",
+    "@stashbox/api-client": "workspace:*",
+    "@stashbox/shared": "workspace:*",
     "zod": "^3.24.1"
   },
   "devDependencies": {

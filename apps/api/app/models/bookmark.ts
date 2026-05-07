@@ -4,7 +4,7 @@ import type {
   EnrichmentFailureReason,
   EnrichmentStatus,
   SavedFrom,
-} from '@stashit/shared'
+} from '@stashbox/shared'
 import { DateTime } from 'luxon'
 
 export default class Bookmark extends BaseModel {

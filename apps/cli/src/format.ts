@@ -1,4 +1,4 @@
-import type { Bookmark } from "@stashit/shared";
+import type { Bookmark } from "@stashbox/shared";
 import pc from "picocolors";
 
 export function formatBookmark(b: Bookmark): string {

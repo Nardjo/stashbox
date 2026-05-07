@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { rm, mkdir } from "node:fs/promises";
 import { loadConfig, setConfig, getConfig } from "../src/config.js";
 
-const TEST_DIR = join(tmpdir(), `stashit-config-test-${Date.now()}`);
+const TEST_DIR = join(tmpdir(), `stashbox-config-test-${Date.now()}`);
 
 describe("config", () => {
   beforeEach(() => mkdir(TEST_DIR, { recursive: true }));

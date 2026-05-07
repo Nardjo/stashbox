@@ -1,5 +1,5 @@
 {
-  "name": "@stashit/api-client",
+  "name": "@stashbox/api-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@stashit/shared": "workspace:*"
+    "@stashbox/shared": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.3.5",

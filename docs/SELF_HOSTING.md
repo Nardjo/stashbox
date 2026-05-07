@@ -1,14 +1,14 @@
-# Self-hosting StashIt
+# Self-hosting Stashbox
 
-Two ways to run StashIt: **Docker Compose** (simplest) and **plain Docker** (manual).
+Two ways to run Stashbox: **Docker Compose** (simplest) and **plain Docker** (manual).
 
 Both give you the same artifact: an HTTP API on port 3333, backed by Postgres (pgvector) + Redis, with an enrichment worker running alongside.
 
 ## Quick start (Docker Compose)
 
 ```bash
-git clone https://github.com/Nardjo/stashit.git
-cd stashit
+git clone https://github.com/Nardjo/stashbox.git
+cd stashbox
 cp .env.example .env
 
 # Generate a strong APP_KEY (32+ chars)
@@ -50,9 +50,9 @@ curl -X POST http://localhost:3333/bookmarks \
 | `LOG_LEVEL`         | no       | `info`                  | `trace`, `debug`, `info`, `warn`, `error`, `silent`.                  |
 | `TZ`                | no       | `UTC`                   | Container timezone.                                                   |
 | `API_PORT`          | no       | `3333`                  | Host port mapping. Container always listens on 3333.                  |
-| `POSTGRES_USER`     | no       | `stashit`               |                                                                       |
-| `POSTGRES_PASSWORD` | no       | `stashit`               | **Change for production.**                                            |
-| `POSTGRES_DB`       | no       | `stashit`               |                                                                       |
+| `POSTGRES_USER`     | no       | `stashbox`              |                                                                       |
+| `POSTGRES_PASSWORD` | no       | `stashbox`              | **Change for production.**                                            |
+| `POSTGRES_DB`       | no       | `stashbox`              |                                                                       |
 | `POSTGRES_PORT`     | no       | `5435`                  | Host port for direct psql access.                                     |
 | `REDIS_PORT`        | no       | `6385`                  | Host port. Containers reach Redis on the internal network.            |
 
@@ -61,34 +61,34 @@ curl -X POST http://localhost:3333/bookmarks \
 If you'd rather wire it manually:
 
 ```bash
-docker network create stashit
+docker network create stashbox
 
-docker run -d --name stashit-postgres --network stashit \
-  -e POSTGRES_USER=stashit -e POSTGRES_PASSWORD=stashit -e POSTGRES_DB=stashit \
-  -v stashit-pg-data:/var/lib/postgresql/data \
+docker run -d --name stashbox-postgres --network stashbox \
+  -e POSTGRES_USER=stashbox -e POSTGRES_PASSWORD=stashbox -e POSTGRES_DB=stashbox \
+  -v stashbox-pg-data:/var/lib/postgresql/data \
   pgvector/pgvector:pg16
 
-docker run -d --name stashit-redis --network stashit \
-  -v stashit-redis-data:/data \
+docker run -d --name stashbox-redis --network stashbox \
+  -v stashbox-redis-data:/data \
   redis:7-alpine
 
-docker build -t stashit-api -f apps/api/Dockerfile .
+docker build -t stashbox-api -f apps/api/Dockerfile .
 
-docker run -d --name stashit-api --network stashit \
+docker run -d --name stashbox-api --network stashbox \
   -e APP_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))") \
   -e APP_URL=http://localhost:3333 \
-  -e DATABASE_URL=postgres://stashit:stashit@stashit-postgres:5432/stashit \
-  -e REDIS_URL=redis://stashit-redis:6379 \
+  -e DATABASE_URL=postgres://stashbox:stashbox@stashbox-postgres:5432/stashbox \
+  -e REDIS_URL=redis://stashbox-redis:6379 \
   -p 3333:3333 \
-  stashit-api
+  stashbox-api
 
-docker run -d --name stashit-worker --network stashit \
+docker run -d --name stashbox-worker --network stashbox \
   -e APP_KEY=<same-as-api> \
   -e APP_URL=http://localhost:3333 \
-  -e DATABASE_URL=postgres://stashit:stashit@stashit-postgres:5432/stashit \
-  -e REDIS_URL=redis://stashit-redis:6379 \
+  -e DATABASE_URL=postgres://stashbox:stashbox@stashbox-postgres:5432/stashbox \
+  -e REDIS_URL=redis://stashbox-redis:6379 \
   -e HOST=0.0.0.0 -e PORT=3333 \
-  stashit-api node ace queue:listen
+  stashbox-api node ace queue:listen
 ```
 
 ## Backup & restore
@@ -97,8 +97,8 @@ docker run -d --name stashit-worker --network stashit \
 
 ```bash
 docker compose exec -T postgres \
-  pg_dump -U stashit -d stashit --format=custom --no-owner \
-  > stashit-$(date +%Y%m%d-%H%M%S).dump
+  pg_dump -U stashbox -d stashbox --format=custom --no-owner \
+  > stashbox-$(date +%Y%m%d-%H%M%S).dump
 ```
 
 **Restore** to a clean stack:
@@ -109,11 +109,11 @@ docker compose stop api worker
 
 # Drop + recreate the database
 docker compose exec -T postgres \
-  psql -U stashit -d postgres -c "DROP DATABASE stashit; CREATE DATABASE stashit;"
+  psql -U stashbox -d postgres -c "DROP DATABASE stashbox; CREATE DATABASE stashbox;"
 
 # Restore
-cat stashit-20260427-120000.dump | \
-  docker compose exec -T postgres pg_restore -U stashit -d stashit --no-owner
+cat stashbox-20260427-120000.dump | \
+  docker compose exec -T postgres pg_restore -U stashbox -d stashbox --no-owner
 
 # Restart the app
 docker compose start api worker

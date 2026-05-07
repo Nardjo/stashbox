@@ -1,4 +1,4 @@
-# StashIt HTTP API
+# Stashbox HTTP API
 
 Single-user, API-key authenticated. All requests except `GET /` require an `Authorization: Bearer <key>` header.
 

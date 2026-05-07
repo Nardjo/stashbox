@@ -1,4 +1,4 @@
-import type { Bookmark, BookmarkType, CreateBookmarkInput } from "@stashit/shared";
+import type { Bookmark, BookmarkType, CreateBookmarkInput } from "@stashbox/shared";
 
 export class ApiError extends Error {
   constructor(
@@ -39,7 +39,7 @@ export interface Tag {
   count: number;
 }
 
-export class StashitClient {
+export class StashboxClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly fetch: typeof globalThis.fetch;

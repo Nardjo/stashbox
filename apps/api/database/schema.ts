@@ -7,6 +7,23 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ApiKeySchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'keyHash', 'lastUsedAt', 'name', 'revokedAt'] as const
+  $columns = ApiKeySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare keyHash: string
+  @column.dateTime()
+  declare lastUsedAt: DateTime | null
+  @column()
+  declare name: string
+  @column.dateTime()
+  declare revokedAt: DateTime | null
+}
+
 export class BookmarkSchema extends BaseModel {
   static $columns = [
     'description',

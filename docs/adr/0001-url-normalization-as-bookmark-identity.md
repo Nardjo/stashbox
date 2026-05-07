@@ -16,4 +16,4 @@ Normalization is **client-agnostic and synchronous at save time**. No HTTP redir
 
 - The hash is stable enough that two clients (Shortcut + Extension) saving "the same" URL with different casings, `www.`, or trailing slashes will dedupe correctly.
 - Adding a new alias to the canonical table later (e.g. `vxtwitter.com → x.com`) does **not** retroactively merge existing **Bookmarks** that were saved under the old form. Such migrations require an explicit one-shot `node ace url:rehash --from … --to …` operation, accepted as a **Owner**-initiated cost.
-- Following redirects is a v1.x candidate behind a flag (`STASHIT_FOLLOW_REDIRECTS_AT_SAVE=true`) if the **Owner** is willing to trade save latency for fewer near-duplicates.
+- Following redirects is a v1.x candidate behind a flag (`STASHBOX_FOLLOW_REDIRECTS_AT_SAVE=true`) if the **Owner** is willing to trade save latency for fewer near-duplicates.

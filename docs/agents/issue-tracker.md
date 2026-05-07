@@ -15,7 +15,7 @@ Infer the repo from `git remote -v` — `gh` does this automatically when run in
 
 ## Repo
 
-`Nardjo/stashit`
+`Nardjo/stashbox`
 
 ## When a skill says "publish to the issue tracker"
 

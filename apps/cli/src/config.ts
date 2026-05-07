@@ -8,7 +8,7 @@ export interface Config {
 }
 
 function configPath(dir?: string): string {
-  return join(dir ?? join(homedir(), ".stashit"), "config.json");
+  return join(dir ?? join(homedir(), ".stashbox"), "config.json");
 }
 
 export async function loadConfig(configDir?: string): Promise<Config> {
@@ -17,7 +17,7 @@ export async function loadConfig(configDir?: string): Promise<Config> {
 
   if (!parsed.apiUrl || !parsed.apiKey) {
     throw new Error(
-      "Missing config. Run: stashit config set apiUrl <url> && stashit config set apiKey <key>",
+      "Missing config. Run: stashbox config set apiUrl <url> && stashbox config set apiKey <key>",
     );
   }
 
@@ -33,7 +33,7 @@ export async function setConfig(
   const raw = await readFile(path, "utf8").catch(() => "{}");
   const parsed = JSON.parse(raw) as Partial<Config>;
   parsed[key] = value;
-  await mkdir(join(configDir ?? join(homedir(), ".stashit")), { recursive: true });
+  await mkdir(join(configDir ?? join(homedir(), ".stashbox")), { recursive: true });
   await writeFile(path, JSON.stringify(parsed, null, 2));
 }
 

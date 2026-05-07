@@ -1,16 +1,16 @@
-# stashit — Product Requirements Document
+# stashbox — Product Requirements Document
 
 > Agent-first, self-hosted bookmarks. You own the data.
 
 ## 1. Vision
 
-stashit is a single-user, self-hosted bookmark backend designed to be consumed primarily by AI agents and lightweight clients (CLI, MCP, browser extension, Apple Shortcut). It is **API-first**: there is no central web UI in v1. You save bookmarks from anywhere, and you retrieve them by asking questions in natural language to your agent of choice.
+stashbox is a single-user, self-hosted bookmark backend designed to be consumed primarily by AI agents and lightweight clients (CLI, MCP, browser extension, Apple Shortcut). It is **API-first**: there is no central web UI in v1. You save bookmarks from anywhere, and you retrieve them by asking questions in natural language to your agent of choice.
 
 The promise is simple: **what you save is yours**. Your bookmarks live in your Postgres database, on your server, exportable at any time as a SQL dump or CSV. No vendor lock-in, no cloud, no third party reading your reading list.
 
 ## 2. Why this exists
 
-Existing self-hosted bookmark managers (Linkding, Linkwarden, Karakeep, Wallabag) are all UI-centric. They treat the agent/API use case as an afterthought. stashit inverts the priority: the API is the product, the clients are thin shells around it. This makes stashit the natural memory layer for personal AI workflows — Claude, Cursor, custom agents — where you want to ask "*find me that article about diffusion models I saved last month*" and get back a usable answer in two seconds.
+Existing self-hosted bookmark managers (Linkding, Linkwarden, Karakeep, Wallabag) are all UI-centric. They treat the agent/API use case as an afterthought. stashbox inverts the priority: the API is the product, the clients are thin shells around it. This makes stashbox the natural memory layer for personal AI workflows — Claude, Cursor, custom agents — where you want to ask "_find me that article about diffusion models I saved last month_" and get back a usable answer in two seconds.
 
 ## 3. Non-goals (v1)
 
@@ -59,9 +59,10 @@ Saves are non-blocking. The API returns `201 Created` instantly with the bookmar
 5. Persist enriched bookmark, set status `done`.
 
 **Tertiary terminal status**:
+
 - `done` — full content was available, full enrichment succeeded.
 - `degraded` — fetch failed gracefully (paywall, 401/403, timeout, TLS error, JS-only site); the worker fell back to Open Graph metadata only. The bookmark is searchable but with weaker tags/embedding. A future **Refresh** may promote it to `done`.
-- `failed` — URL is dead (404/410/DNS NXDOMAIN/malformed) or the LLM step couldn't produce valid output. Stored with `enrichmentFailureReason` for filterable retry. **No automatic retry beyond the in-job attempt.** Excluded from semantic search and from list tools by default; surfaced via `list_failed` / `stashit failed`.
+- `failed` — URL is dead (404/410/DNS NXDOMAIN/malformed) or the LLM step couldn't produce valid output. Stored with `enrichmentFailureReason` for filterable retry. **No automatic retry beyond the in-job attempt.** Excluded from semantic search and from list tools by default; surfaced via `list_failed` / `stashbox failed`.
 
 Transient infra errors (LLM rate-limit, provider 5xx) return the bookmark to `pending` for backoff replay (up to 3 times) — they are not `failed`.
 
@@ -84,7 +85,7 @@ We also bump `savedCount` and `lastSavedAt` on conflict, and add the source to `
 
 Tags are LLM-generated but **vocabulary-aware**: at enrichment time, the worker passes the current tag list to the model with an instruction to reuse existing tags whenever possible and only invent a new one when nothing fits. Tags are normalized (lowercase, kebab-case, singular). A `tags merge` command is provided to consolidate duplicates manually.
 
-**New tag quarantine**: a tag invented for a single bookmark is *not* re-injected into the prompt for subsequent enrichments. It must appear on at least 2 distinct bookmarks before joining the active vocabulary. This is a single-user-friendly safeguard against typo/variant inflation.
+**New tag quarantine**: a tag invented for a single bookmark is _not_ re-injected into the prompt for subsequent enrichments. It must appear on at least 2 distinct bookmarks before joining the active vocabulary. This is a single-user-friendly safeguard against typo/variant inflation.
 
 **Tag merge** updates the canonical `tags` field on affected bookmarks but does **not** trigger re-embedding — `embedding` and `embeddingSourceText` stay frozen and consistent with each other. If drift becomes a problem, the **Owner** can run a global re-embed.
 
@@ -102,25 +103,25 @@ Hybrid search (BM25 + vector with reciprocal rank fusion) is a v1.x candidate if
 
 ### 5.1 Stack
 
-| Layer | Choice | Rationale |
-|---|---|---|
-| Backend framework | AdonisJS 6 (TypeScript) | Owner's daily driver, Lucid ORM, queues, validation, ace commands. |
-| Database | Postgres + pgvector | SQL portability, vector search in the same engine. |
-| Queue | Redis + Bull (`@rlanz/bull-queue`) | Standard, reliable, observable. |
-| AI orchestration | Vercel AI SDK | Multi-provider with one API, structured output via Zod. |
-| Embedding model | `text-embedding-3-small` (1536 dims) | Best price/quality, fixed in schema. |
-| LLM (default) | `claude-haiku-4-5` via Anthropic | Fast, cheap, structured output reliable. User can override. |
-| Fetch provider (default) | Jina Reader (`r.jina.ai`) | Free, no key required, returns LLM-ready markdown. Alternatives: `firecrawl`, `local` (Node fetch + Readability — no external dep, but fails on paywalls/JS-only sites). |
-| Hosting | Coolify (Docker) | Self-hosted, owner's existing infra. |
+| Layer                    | Choice                               | Rationale                                                                                                                                                                |
+| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend framework        | AdonisJS 6 (TypeScript)              | Owner's daily driver, Lucid ORM, queues, validation, ace commands.                                                                                                       |
+| Database                 | Postgres + pgvector                  | SQL portability, vector search in the same engine.                                                                                                                       |
+| Queue                    | Redis + Bull (`@rlanz/bull-queue`)   | Standard, reliable, observable.                                                                                                                                          |
+| AI orchestration         | Vercel AI SDK                        | Multi-provider with one API, structured output via Zod.                                                                                                                  |
+| Embedding model          | `text-embedding-3-small` (1536 dims) | Best price/quality, fixed in schema.                                                                                                                                     |
+| LLM (default)            | `claude-haiku-4-5` via Anthropic     | Fast, cheap, structured output reliable. User can override.                                                                                                              |
+| Fetch provider (default) | Jina Reader (`r.jina.ai`)            | Free, no key required, returns LLM-ready markdown. Alternatives: `firecrawl`, `local` (Node fetch + Readability — no external dep, but fails on paywalls/JS-only sites). |
+| Hosting                  | Coolify (Docker)                     | Self-hosted, owner's existing infra.                                                                                                                                     |
 
 ### 5.2 Repository layout (monorepo)
 
 ```
-stashit/
+stashbox/
 ├── apps/
 │   ├── api/                AdonisJS backend
 │   ├── extension/          Chrome extension (Vite + React + Manifest V3)
-│   ├── cli/                `stashit` npm binary
+│   ├── cli/                `stashbox` npm binary
 │   └── mcp/                MCP server
 ├── packages/
 │   ├── shared/             types, Zod schemas, URL normalize
@@ -154,50 +155,54 @@ REDIS_URL=redis://...
 APP_KEY=...
 
 # AI
-STASHIT_LLM_PROVIDER=anthropic   # anthropic|openai|google|openrouter|mistral|groq|ollama
-STASHIT_LLM_MODEL=claude-haiku-4-5
-STASHIT_LLM_API_KEY=sk-ant-...
+STASHBOX_LLM_PROVIDER=anthropic   # anthropic|openai|google|openrouter|mistral|groq|ollama
+STASHBOX_LLM_MODEL=claude-haiku-4-5
+STASHBOX_LLM_API_KEY=sk-ant-...
 
-STASHIT_EMBEDDING_PROVIDER=openai
-STASHIT_EMBEDDING_MODEL=text-embedding-3-small
-STASHIT_EMBEDDING_API_KEY=sk-...
+STASHBOX_EMBEDDING_PROVIDER=openai
+STASHBOX_EMBEDDING_MODEL=text-embedding-3-small
+STASHBOX_EMBEDDING_API_KEY=sk-...
 
-STASHIT_FETCH_PROVIDER=jina      # jina|firecrawl|local
-STASHIT_FETCH_API_KEY=           # optional for jina; required for firecrawl
+STASHBOX_FETCH_PROVIDER=jina      # jina|firecrawl|local
+STASHBOX_FETCH_API_KEY=           # optional for jina; required for firecrawl
 ```
 
-Switching `STASHIT_EMBEDDING_*` does **not** auto-migrate existing embeddings. Run `node ace embedding:migrate` explicitly. See [docs/adr/0002](./adr/0002-single-embedding-space-with-explicit-migration.md).
+Switching `STASHBOX_EMBEDDING_*` does **not** auto-migrate existing embeddings. Run `node ace embedding:migrate` explicitly. See [docs/adr/0002](./adr/0002-single-embedding-space-with-explicit-migration.md).
 
 ## 6. Clients (v1)
 
 ### 6.1 Apple Shortcut
+
 Receives a URL via the iOS share sheet, runs **Get Article Using Safari Reader** to extract clean content on-device (bypasses paywalls and Cloudflare since Safari is logged in), POSTs `{ url, title, content, sharedFrom: "ios-shortcut" }`. Displays "Saved ✓" or "Already saved" with the bookmark title.
 
 ### 6.2 Chrome Extension
+
 Toolbar icon. Click → popup (320×400). The extension reads `document.title`, the readable content via Mozilla's Readability lib injected into the page, and POSTs the same payload as the Shortcut. UI shows enrichment status live (poll the bookmark for ~10s) so the user sees the tags appear before closing the popup.
 
-### 6.3 CLI (`stashit`)
+### 6.3 CLI (`stashbox`)
+
 Published to npm. Commands:
 
 ```
-stashit add <url>                 # POST a URL
-stashit search "<query>" [-n 10]  # semantic search
-stashit recent [-n 20] [--type article]
-stashit tag <tag>                 # list bookmarks by tag
-stashit get <id|url>
-stashit delete <id>
-stashit refresh <id>
-stashit failed                    # list enrichment failures
-stashit retry-failed              # bulk retry
-stashit import <file.csv>
-stashit export <file.csv>
-stashit tags                      # list tags with counts
-stashit stats
+stashbox add <url>                 # POST a URL
+stashbox search "<query>" [-n 10]  # semantic search
+stashbox recent [-n 20] [--type article]
+stashbox tag <tag>                 # list bookmarks by tag
+stashbox get <id|url>
+stashbox delete <id>
+stashbox refresh <id>
+stashbox failed                    # list enrichment failures
+stashbox retry-failed              # bulk retry
+stashbox import <file.csv>
+stashbox export <file.csv>
+stashbox tags                      # list tags with counts
+stashbox stats
 ```
 
-Config: `~/.stashit/config.json` with `{ apiUrl, apiKey }`.
+Config: `~/.stashbox/config.json` with `{ apiUrl, apiKey }`.
 
 ### 6.4 MCP Server
+
 Exposes 9 tools to MCP-compatible agents (Claude Desktop, Claude Code, Cursor):
 
 ```
@@ -219,10 +224,10 @@ refresh_bookmark(id)
 - **Import**: CSV. Columns: `url, title?, description?, tags?, created_at?`. Missing fields are filled by enrichment. Dedup applies. Enrichment jobs are queued in batches respecting LLM concurrency limits.
 - **Export**: format inferred from target.
   - `<file>.csv` — minimal portable CSV (`url, title, description, tags, type, enrichment_status, saved_at`). Compatible with Linkding/Linkwarden/Pocket. Embeddings dropped.
-  - `<file>.jsonl` — full-fidelity JSON Lines including `embedding`, `embeddingModel`, `embeddingDim`, `embeddingSourceText`, `enrichmentFailureReason`. Round-trip restorable into a stashit instance running the **same** embedding model. Mismatch → import refused (re-embedding is always explicit).
+  - `<file>.jsonl` — full-fidelity JSON Lines including `embedding`, `embeddingModel`, `embeddingDim`, `embeddingSourceText`, `enrichmentFailureReason`. Round-trip restorable into a stashbox instance running the **same** embedding model. Mismatch → import refused (re-embedding is always explicit).
   - `<file>.sql` — convenience wrapper around `pg_dump`. Easiest local backup, schema-bound (not portable).
-  - `<directory>/` — bundle: `bookmarks.csv` + `embeddings.jsonl` + `tags.csv`. Default for `stashit export` without an explicit target.
-- All export formats carry an explicit version marker (`# stashit-export v1` or `{"_format": "stashit-jsonl", "version": 1, ...}`).
+  - `<directory>/` — bundle: `bookmarks.csv` + `embeddings.jsonl` + `tags.csv`. Default for `stashbox export` without an explicit target.
+- All export formats carry an explicit version marker (`# stashbox-export v1` or `{"_format": "stashbox-jsonl", "version": 1, ...}`).
 
 (Netscape HTML format — universal browser bookmark export — is a v1.x candidate.)
 
@@ -232,20 +237,21 @@ refresh_bookmark(id)
 - `failed` carries a typed `enrichmentFailureReason` (`url_dead | fetch_unavailable | llm_invalid_output | llm_provider_error | unknown`) so retry can filter (e.g. retry all `llm_provider_error` after fixing a key, skip `url_dead`).
 - Transient infra errors (LLM rate-limit, provider 5xx) return the bookmark to `pending` for backoff replay (up to 3 times) — they are not `failed`.
 - `degraded` bookmarks are included in semantic search and list tools — they're useful, just weaker.
-- `failed` bookmarks remain retrievable by URL/listing, surfaced via `list_failed` (MCP) / `stashit failed` (CLI).
+- `failed` bookmarks remain retrievable by URL/listing, surfaced via `list_failed` (MCP) / `stashbox failed` (CLI).
 - **Refresh** replays the full pipeline. If the new run would be strictly worse than the current state (e.g. a previously-`done` URL is now 404), Refresh is a no-op — current enrichment is preserved, error returned. Refresh increments `enrichmentAttempts` with no upper bound.
 - No silent dropping. Every error is observable.
 
 ## 9. Deployment
 
 ```bash
-git clone https://github.com/nardjo/stashit
-cd stashit
+git clone https://github.com/nardjo/stashbox
+cd stashbox
 cp .env.example .env       # edit values
 docker compose up -d       # Postgres + Redis + API
 ```
 
 For development:
+
 ```bash
 pnpm install
 pnpm dev                   # extension + cli + mcp in watch mode

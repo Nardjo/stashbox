@@ -1,4 +1,4 @@
-import type { StashitClient } from "@stashit/api-client";
+import type { StashboxClient } from "@stashbox/api-client";
 import pc from "picocolors";
 import { formatBookmark, toJson } from "../format.js";
 
@@ -6,7 +6,7 @@ interface AddOptions {
   url: string;
   content?: string;
   json: boolean;
-  client: StashitClient;
+  client: StashboxClient;
   print: (line: string) => void;
 }
 

@@ -1,4 +1,4 @@
-import type { BookmarkType } from '@stashit/shared'
+import type { BookmarkType } from '@stashbox/shared'
 
 export interface ComposeEmbeddingSourceInput {
   title: string

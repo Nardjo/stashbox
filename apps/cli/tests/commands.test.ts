@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Bookmark } from "@stashit/shared";
-import type { StashitClient } from "@stashit/api-client";
+import type { Bookmark } from "@stashbox/shared";
+import type { StashboxClient } from "@stashbox/api-client";
 import { runSearch } from "../src/commands/search.js";
 import { runList } from "../src/commands/list.js";
 import { runGet } from "../src/commands/get.js";
@@ -36,7 +36,7 @@ function makeBookmark(overrides: Partial<Bookmark> = {}): Bookmark {
   };
 }
 
-function makeClient(overrides: Partial<StashitClient> = {}): StashitClient {
+function makeClient(overrides: Partial<StashboxClient> = {}): StashboxClient {
   return {
     search: vi.fn().mockResolvedValue([]),
     list: vi.fn().mockResolvedValue([]),
@@ -47,7 +47,7 @@ function makeClient(overrides: Partial<StashitClient> = {}): StashitClient {
     refresh: vi.fn(),
     tags: vi.fn().mockResolvedValue([]),
     ...overrides,
-  } as unknown as StashitClient;
+  } as unknown as StashboxClient;
 }
 
 describe("search command", () => {
