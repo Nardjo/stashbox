@@ -273,6 +273,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.14)(react@19.2.5)
+      '@stashbox/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@tanstack/react-router':
         specifier: 1.131.50
         version: 1.131.50(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
