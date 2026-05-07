@@ -276,6 +276,9 @@ importers:
       '@stashbox/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@stashbox/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@tanstack/react-router':
         specifier: 1.131.50
         version: 1.131.50(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

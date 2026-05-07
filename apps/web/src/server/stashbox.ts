@@ -1,7 +1,9 @@
-import { StashboxClient } from "@stashbox/api-client";
 import type { AddParams, ListParams, SearchParams } from "@stashbox/api-client";
+import { StashboxClient } from "@stashbox/api-client";
+import type { Bookmark } from "@stashbox/shared";
 import { createServerFn, serverOnly } from "@tanstack/react-start";
 import { z } from "zod";
+
 import { env } from "../config.ts";
 
 type ClientOptions = {
@@ -41,6 +43,8 @@ const deleteBookmarkSchema = z.object({
   id: z.string().uuid(),
 });
 
+const initialBookmarksPage = { limit: 48, offset: 0 } satisfies ListParams;
+
 let client: StashboxClient | undefined;
 
 export const getStashboxServerClient = serverOnly((options: ClientOptions = {}): StashboxClient => {
@@ -76,19 +80,23 @@ function createClient(fetch?: typeof globalThis.fetch): StashboxClient {
 export const listBookmarks = createServerFn({ method: "GET" })
   .validator((data: ListParams = {}) => listBookmarksSchema.parse(data))
   .type("dynamic")
-  .handler(async ({ data }): Promise<any> => createStashboxServerOperations().listBookmarks(data));
+  .handler(
+    async ({ data }): Promise<unknown> => createStashboxServerOperations().listBookmarks(data),
+  );
 
 export const searchBookmarks = createServerFn({ method: "POST" })
   .validator((data: SearchParams) => searchBookmarksSchema.parse(data))
   .type("dynamic")
   .handler(
-    async ({ data }): Promise<any> => createStashboxServerOperations().searchBookmarks(data),
+    async ({ data }): Promise<unknown> => createStashboxServerOperations().searchBookmarks(data),
   );
 
 export const addBookmark = createServerFn({ method: "POST" })
   .validator((data: AddParams) => addBookmarkSchema.parse(data))
   .type("dynamic")
-  .handler(async ({ data }): Promise<any> => createStashboxServerOperations().addBookmark(data));
+  .handler(
+    async ({ data }): Promise<unknown> => createStashboxServerOperations().addBookmark(data),
+  );
 
 export const deleteBookmark = createServerFn({ method: "POST" })
   .validator((data: { id: string }) => deleteBookmarkSchema.parse(data))
@@ -98,3 +106,10 @@ export const deleteBookmark = createServerFn({ method: "POST" })
 export const listTags = createServerFn({ method: "GET" })
   .type("dynamic")
   .handler(async () => createStashboxServerOperations().listTags());
+
+export async function loadInitialBookmarks() {
+  return (
+    ((await listBookmarks({ data: initialBookmarksPage })) as Bookmark[] | undefined) ??
+    createStashboxServerOperations().listBookmarks(initialBookmarksPage)
+  );
+}
