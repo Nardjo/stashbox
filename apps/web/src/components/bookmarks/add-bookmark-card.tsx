@@ -36,23 +36,25 @@ export function AddBookmarkCard({ onSaveBookmark }: AddBookmarkCardProps) {
   return (
     <form
       aria-label="Sauvegarder un Bookmark"
-      className="flex min-h-full flex-col justify-between rounded-2xl border border-dashed border-slate-300 bg-white p-4 shadow-sm"
+      className="flex min-h-full flex-col justify-between rounded-2xl border border-dashed border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
       noValidate
       onSubmit={handleSubmit}
     >
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-semibold text-slate-950">Sauvegarder un Bookmark</p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
+            Sauvegarder un Bookmark
+          </p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Collez une URL pour lancer l'enrichissement.
           </p>
         </div>
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label className="block space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
           <span>URL du Bookmark</span>
           <input
             aria-describedby={error ? errorId : undefined}
             aria-invalid={error ? true : undefined}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:border-slate-200 dark:focus:ring-slate-200/10"
             disabled={isSaving}
             onChange={(event) => setUrl(event.target.value)}
             placeholder="https://example.com/article"
@@ -61,7 +63,11 @@ export function AddBookmarkCard({ onSaveBookmark }: AddBookmarkCardProps) {
           />
         </label>
         {error ? (
-          <p id={errorId} role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
+          <p
+            id={errorId}
+            role="alert"
+            className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200"
+          >
             {error}
           </p>
         ) : null}
