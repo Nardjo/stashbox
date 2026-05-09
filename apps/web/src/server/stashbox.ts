@@ -108,7 +108,9 @@ export const listTags = createServerFn({ method: "GET" })
   .handler(async () => createStashboxServerOperations().listTags());
 
 export type InitialBrowseData = {
+  bookmarkPageSize: number;
   bookmarks: Bookmark[];
+  hasMoreBookmarks: boolean;
   tags: Tag[];
 };
 
@@ -117,5 +119,10 @@ export async function loadInitialBrowseData(): Promise<InitialBrowseData> {
   const bookmarks = await operations.listBookmarks(initialBookmarksPage);
   const tags = await operations.listTags();
 
-  return { bookmarks, tags };
+  return {
+    bookmarkPageSize: initialBookmarksPage.limit,
+    bookmarks,
+    hasMoreBookmarks: bookmarks.length === initialBookmarksPage.limit,
+    tags,
+  };
 }

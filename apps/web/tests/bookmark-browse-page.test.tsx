@@ -44,6 +44,155 @@ describe("BookmarkBrowsePage", () => {
     expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
   });
 
+  it("loads the next Bookmark page and appends it to the grid", async () => {
+    const loadMoreBookmarks = vi.fn().mockResolvedValue([
+      createBookmark({
+        id: "00000000-0000-4000-8000-000000000003",
+        title: "Pagination systems",
+      }),
+    ]);
+
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Vue patterns",
+          }),
+        ]}
+        bookmarkPageSize={2}
+        hasMoreBookmarks={true}
+        onLoadMoreBookmarks={loadMoreBookmarks}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Charger plus" }));
+
+    await waitFor(() => expect(loadMoreBookmarks).toHaveBeenCalledWith({ limit: 2, offset: 2 }));
+    expect(screen.getByRole("article", { name: "Pagination systems" })).toBeInTheDocument();
+    expect(screen.getByText("3 Bookmarks")).toBeInTheDocument();
+  });
+
+  it("hides the load more trigger after a short page is loaded", async () => {
+    const loadMoreBookmarks = vi.fn().mockResolvedValue([
+      createBookmark({
+        id: "00000000-0000-4000-8000-000000000003",
+        title: "Last Bookmark",
+      }),
+    ]);
+
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Vue patterns",
+          }),
+        ]}
+        bookmarkPageSize={2}
+        hasMoreBookmarks={true}
+        onLoadMoreBookmarks={loadMoreBookmarks}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Charger plus" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Charger plus" })).toBeNull());
+    expect(screen.getByRole("article", { name: "Last Bookmark" })).toBeInTheDocument();
+  });
+
+  it("shows a loading state while the next Bookmark page is loading", async () => {
+    let finishLoad!: (bookmarks: Bookmark[]) => void;
+    const loadMoreBookmarks = vi.fn(
+      () =>
+        new Promise<Bookmark[]>((resolve) => {
+          finishLoad = resolve;
+        }),
+    );
+
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Vue patterns",
+          }),
+        ]}
+        bookmarkPageSize={2}
+        hasMoreBookmarks={true}
+        onLoadMoreBookmarks={loadMoreBookmarks}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Charger plus" }));
+
+    const loadingButton = await screen.findByRole("button", { name: "Chargement..." });
+    expect(loadingButton).toBeDisabled();
+
+    finishLoad([]);
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Chargement..." })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("resets loaded pages when active filters change", async () => {
+    const loadMoreBookmarks = vi.fn().mockResolvedValue([
+      createBookmark({
+        id: "00000000-0000-4000-8000-000000000003",
+        title: "Pagination systems",
+      }),
+    ]);
+
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Vue patterns",
+          }),
+        ]}
+        bookmarkPageSize={2}
+        hasMoreBookmarks={true}
+        onLoadMoreBookmarks={loadMoreBookmarks}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Charger plus" }));
+    expect(await screen.findByRole("article", { name: "Pagination systems" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+      target: { value: "pagination" },
+    });
+
+    expect(screen.queryByRole("article", { name: "Pagination systems" })).not.toBeInTheDocument();
+    expect(screen.getByText("0 Bookmarks")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Charger plus" })).toBeInTheDocument();
+  });
+
   it("filters Bookmarks by title or URL text", () => {
     renderPage(
       <BookmarkBrowsePage
