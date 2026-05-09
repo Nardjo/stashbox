@@ -1,3 +1,4 @@
+import type { Tag } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
 import { useEffect, useState } from "react";
 
@@ -5,8 +6,14 @@ import { ThemeToggle } from "~/components/theme/theme.tsx";
 
 import { BookmarkGrid } from "./bookmark-grid.tsx";
 
+const bookmarkTypes = ["tweet", "youtube", "article", "image", "pdf", "other"] as const;
+const emptyBookmarkFilters: BookmarkFilters = { selectedTags: [], textFilter: "", typeFilter: "" };
+const filterControlClassName =
+  "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:border-slate-200 dark:focus:ring-slate-200/10";
+
 type BookmarkBrowsePageProps = {
   bookmarks: Bookmark[];
+  tags?: Tag[];
   loadError?: string;
   onSaveBookmark: (url: string) => Promise<void>;
   onDeleteBookmark: (id: string) => Promise<void>;
@@ -14,21 +21,54 @@ type BookmarkBrowsePageProps = {
 
 export function BookmarkBrowsePage({
   bookmarks,
+  tags = [],
   loadError,
   onSaveBookmark,
   onDeleteBookmark,
 }: BookmarkBrowsePageProps) {
   const [visibleBookmarks, setVisibleBookmarks] = useState(bookmarks);
+  const [filters, setFilters] = useState<BookmarkFilters>(emptyBookmarkFilters);
+  const [hasLoadedUrlFilters, setHasLoadedUrlFilters] = useState(false);
+  const filteredBookmarks = filterBookmarks(visibleBookmarks, filters);
   const countLabel =
-    visibleBookmarks.length === 1 ? "1 Bookmark" : `${visibleBookmarks.length} Bookmarks`;
+    filteredBookmarks.length === 1 ? "1 Bookmark" : `${filteredBookmarks.length} Bookmarks`;
+  const hasActiveFilters = hasActiveBookmarkFilters(filters);
 
   useEffect(() => {
     setVisibleBookmarks(bookmarks);
   }, [bookmarks]);
 
+  useEffect(() => {
+    setFilters(getInitialBookmarkFilters());
+    setHasLoadedUrlFilters(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedUrlFilters) return;
+
+    syncBookmarkFiltersToUrl(filters);
+  }, [filters, hasLoadedUrlFilters]);
+
   async function handleDeleteBookmark(id: string) {
     await onDeleteBookmark(id);
     setVisibleBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
+  }
+
+  function toggleTag(tag: string) {
+    setFilters((current) => {
+      if (current.selectedTags.includes(tag)) {
+        return {
+          ...current,
+          selectedTags: current.selectedTags.filter((selectedTag) => selectedTag !== tag),
+        };
+      }
+
+      return { ...current, selectedTags: [...current.selectedTags, tag] };
+    });
+  }
+
+  function clearFilters() {
+    setFilters(emptyBookmarkFilters);
   }
 
   return (
@@ -59,12 +99,176 @@ export function BookmarkBrowsePage({
             </p>
           ) : null}
         </header>
+        <section
+          aria-label="Filtres de Bookmarks"
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]">
+            <label className="block space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+              <span>Filtrer par texte</span>
+              <input
+                type="search"
+                value={filters.textFilter}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, textFilter: event.target.value }))
+                }
+                placeholder="Titre ou URL"
+                className={filterControlClassName}
+              />
+            </label>
+            <label className="block space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+              <span>Filtrer par type</span>
+              <select
+                value={filters.typeFilter}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    typeFilter: event.target.value as Bookmark["type"] | "",
+                  }))
+                }
+                className={filterControlClassName}
+              >
+                <option value="">Tous les types</option>
+                {bookmarkTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {tags.length > 0 ? (
+            <fieldset className="mt-4 space-y-2">
+              <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Filtrer par tags
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {tags.map(({ tag, count }) => (
+                  <label
+                    key={tag}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.selectedTags.includes(tag)}
+                      onChange={() => toggleTag(tag)}
+                      className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-950"
+                    />
+                    <span>
+                      {tag} ({count})
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-4 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Effacer les filtres
+            </button>
+          ) : null}
+        </section>
         <BookmarkGrid
-          bookmarks={visibleBookmarks}
+          bookmarks={filteredBookmarks}
           onSaveBookmark={onSaveBookmark}
           onDeleteBookmark={handleDeleteBookmark}
         />
       </div>
     </main>
   );
+}
+
+type BookmarkFilters = {
+  selectedTags: string[];
+  textFilter: string;
+  typeFilter: Bookmark["type"] | "";
+};
+
+function getInitialBookmarkFilters(): BookmarkFilters {
+  if (typeof window === "undefined") {
+    return { selectedTags: [], textFilter: "", typeFilter: "" };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const typeFilter = parseBookmarkType(params.get("type"));
+
+  return {
+    selectedTags: parseTagsParam(params.get("tags")),
+    textFilter: params.get("q") ?? "",
+    typeFilter,
+  };
+}
+
+function syncBookmarkFiltersToUrl(filters: BookmarkFilters) {
+  if (typeof window === "undefined") return;
+
+  const params = new URLSearchParams(window.location.search);
+  const textFilter = filters.textFilter.trim();
+  if (textFilter) {
+    params.set("q", textFilter);
+  } else {
+    params.delete("q");
+  }
+
+  if (filters.typeFilter) {
+    params.set("type", filters.typeFilter);
+  } else {
+    params.delete("type");
+  }
+
+  if (filters.selectedTags.length > 0) {
+    params.set("tags", filters.selectedTags.join(","));
+  } else {
+    params.delete("tags");
+  }
+
+  const search = params.toString();
+  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+  window.history.replaceState(window.history.state, "", nextUrl);
+}
+
+function parseBookmarkType(value: string | null): Bookmark["type"] | "" {
+  if (bookmarkTypes.some((type) => type === value)) return value as Bookmark["type"];
+
+  return "";
+}
+
+function parseTagsParam(value: string | null) {
+  if (!value) return [];
+
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function filterBookmarks(bookmarks: Bookmark[], filters: BookmarkFilters) {
+  return filterBookmarksByText(bookmarks, filters.textFilter).filter((bookmark) => {
+    const matchesType = !filters.typeFilter || bookmark.type === filters.typeFilter;
+    const matchesTags =
+      filters.selectedTags.length === 0 ||
+      filters.selectedTags.some((tag) => bookmark.tags.includes(tag));
+
+    return matchesType && matchesTags;
+  });
+}
+
+function hasActiveBookmarkFilters(filters: BookmarkFilters) {
+  return Boolean(filters.textFilter || filters.typeFilter || filters.selectedTags.length > 0);
+}
+
+function filterBookmarksByText(bookmarks: Bookmark[], textFilter: string) {
+  const query = textFilter.trim().toLocaleLowerCase();
+  if (!query) return bookmarks;
+
+  return bookmarks.filter((bookmark) => {
+    return (
+      bookmark.title.toLocaleLowerCase().includes(query) ||
+      bookmark.url.toLocaleLowerCase().includes(query)
+    );
+  });
 }

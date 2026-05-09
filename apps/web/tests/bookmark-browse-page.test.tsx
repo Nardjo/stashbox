@@ -10,6 +10,7 @@ describe("BookmarkBrowsePage", () => {
   afterEach(() => {
     localStorage.clear();
     document.documentElement.classList.remove("dark");
+    window.history.replaceState(null, "", "/");
     vi.unstubAllGlobals();
   });
 
@@ -41,6 +42,200 @@ describe("BookmarkBrowsePage", () => {
     );
 
     expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
+  });
+
+  it("filters Bookmarks by title or URL text", () => {
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+            url: "https://example.com/readable-systems",
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Vue patterns",
+            url: "https://docs.example.com/vue-patterns",
+          }),
+        ]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+      target: { value: "docs.example" },
+    });
+
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Vue patterns" })).toBeInTheDocument();
+    expect(screen.getByText("1 Bookmark")).toBeInTheDocument();
+  });
+
+  it("filters Bookmarks by selected type", () => {
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+            type: "article",
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Nuxt walkthrough",
+            type: "youtube",
+          }),
+        ]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Filtrer par type"), {
+      target: { value: "youtube" },
+    });
+
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Nuxt walkthrough" })).toBeInTheDocument();
+    expect(screen.getByText("1 Bookmark")).toBeInTheDocument();
+  });
+
+  it("filters Bookmarks by selected Tags with OR semantics and combines other filters with AND", () => {
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+            type: "article",
+            tags: ["architecture"],
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Nuxt patterns",
+            type: "youtube",
+            tags: ["vue"],
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000003",
+            title: "Nuxt architecture",
+            type: "youtube",
+            tags: ["architecture"],
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000004",
+            title: "Nuxt design",
+            type: "youtube",
+            tags: ["design"],
+          }),
+        ]}
+        tags={[
+          { tag: "architecture", count: 2 },
+          { tag: "vue", count: 1 },
+          { tag: "design", count: 1 },
+        ]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+      target: { value: "nuxt" },
+    });
+    fireEvent.change(screen.getByLabelText("Filtrer par type"), {
+      target: { value: "youtube" },
+    });
+    fireEvent.click(screen.getByLabelText("architecture (2)"));
+    fireEvent.click(screen.getByLabelText("vue (1)"));
+
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Nuxt patterns" })).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Nuxt design" })).not.toBeInTheDocument();
+    expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
+  });
+
+  it("syncs active filters to the URL and clears them from the grid", () => {
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+            type: "article",
+            tags: ["architecture"],
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Nuxt architecture",
+            type: "youtube",
+            tags: ["architecture"],
+          }),
+        ]}
+        tags={[{ tag: "architecture", count: 2 }]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+      target: { value: "nuxt" },
+    });
+    fireEvent.change(screen.getByLabelText("Filtrer par type"), {
+      target: { value: "youtube" },
+    });
+    fireEvent.click(screen.getByLabelText("architecture (2)"));
+
+    const activeParams = new URLSearchParams(window.location.search);
+    expect(activeParams.get("q")).toBe("nuxt");
+    expect(activeParams.get("type")).toBe("youtube");
+    expect(activeParams.get("tags")).toBe("architecture");
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Effacer les filtres" }));
+
+    expect(window.location.search).toBe("");
+    expect(screen.getByLabelText("Filtrer par texte")).toHaveValue("");
+    expect(screen.getByLabelText("Filtrer par type")).toHaveValue("");
+    expect(screen.getByLabelText("architecture (2)")).not.toBeChecked();
+    expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
+    expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
+  });
+
+  it("initializes active filters from the URL query string", () => {
+    window.history.replaceState(null, "", "/?q=nuxt&type=youtube&tags=architecture");
+
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000001",
+            title: "Readable systems",
+            type: "article",
+            tags: ["architecture"],
+          }),
+          createBookmark({
+            id: "00000000-0000-4000-8000-000000000002",
+            title: "Nuxt architecture",
+            type: "youtube",
+            tags: ["architecture"],
+          }),
+        ]}
+        tags={[{ tag: "architecture", count: 2 }]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Filtrer par texte")).toHaveValue("nuxt");
+    expect(screen.getByLabelText("Filtrer par type")).toHaveValue("youtube");
+    expect(screen.getByLabelText("architecture (2)")).toBeChecked();
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
   });
 
   it("shows a load error without hiding the page shell", () => {
