@@ -1,12 +1,20 @@
 import type { Bookmark } from "@stashbox/shared";
+import type { ReactElement } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BookmarkBrowsePage } from "~/components/bookmarks/bookmark-browse-page.tsx";
+import { ThemeProvider } from "~/components/theme/theme.tsx";
 
 describe("BookmarkBrowsePage", () => {
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.classList.remove("dark");
+    vi.unstubAllGlobals();
+  });
+
   it("renders loaded Bookmarks in the browse grid", () => {
-    render(
+    renderPage(
       <BookmarkBrowsePage
         bookmarks={[createBookmark({ title: "Readable systems" })]}
         onSaveBookmark={async () => {}}
@@ -20,7 +28,7 @@ describe("BookmarkBrowsePage", () => {
   });
 
   it("pluralizes the Bookmark count", () => {
-    render(
+    renderPage(
       <BookmarkBrowsePage
         bookmarks={[
           createBookmark({ id: "00000000-0000-4000-8000-000000000001" }),
@@ -34,7 +42,7 @@ describe("BookmarkBrowsePage", () => {
   });
 
   it("shows a load error without hiding the page shell", () => {
-    render(
+    renderPage(
       <BookmarkBrowsePage
         bookmarks={[]}
         loadError="Impossible de charger les Bookmarks."
@@ -46,9 +54,47 @@ describe("BookmarkBrowsePage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Impossible de charger les Bookmarks.");
   });
 
+  it("switches the visible theme from the header", () => {
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Activer le thème sombre" }));
+
+    expect(document.documentElement).toHaveClass("dark");
+    expect(screen.getByRole("button", { name: "Activer le thème clair" })).toBeInTheDocument();
+  });
+
+  it("keeps the selected theme for the next page load", () => {
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Activer le thème sombre" }));
+
+    expect(localStorage.getItem("stashbox-theme")).toBe("dark");
+  });
+
+  it("uses the OS dark preference when no theme was selected", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(prefers-color-scheme: dark)",
+    }));
+
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+
+    await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
+    expect(screen.getByRole("button", { name: "Activer le thème clair" })).toBeInTheDocument();
+  });
+
+  it("restores the stored theme before using the OS preference", async () => {
+    localStorage.setItem("stashbox-theme", "dark");
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+
+    await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
+    expect(screen.getByRole("button", { name: "Activer le thème clair" })).toBeInTheDocument();
+  });
+
   it("saves a Bookmark URL from the first grid slot and clears the input", async () => {
     const saveBookmark = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderPage(
       <BookmarkBrowsePage
         bookmarks={[createBookmark({ title: "Readable systems" })]}
         onSaveBookmark={saveBookmark}
@@ -70,7 +116,7 @@ describe("BookmarkBrowsePage", () => {
 
   it("shows an inline error without saving when the Bookmark URL is invalid", () => {
     const saveBookmark = vi.fn().mockResolvedValue(undefined);
-    render(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
 
     const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
     const input = within(addCard).getByLabelText("URL du Bookmark");
@@ -92,7 +138,7 @@ describe("BookmarkBrowsePage", () => {
           finishSave = resolve;
         }),
     );
-    render(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
 
     const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
     const input = within(addCard).getByLabelText("URL du Bookmark");
@@ -111,7 +157,7 @@ describe("BookmarkBrowsePage", () => {
 
   it("shows a server error without clearing the Bookmark URL", async () => {
     const saveBookmark = vi.fn().mockRejectedValue(new Error("API unavailable"));
-    render(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
+    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
 
     const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
     const input = within(addCard).getByLabelText("URL du Bookmark");
@@ -125,6 +171,10 @@ describe("BookmarkBrowsePage", () => {
     expect(input).toHaveValue("https://example.com/new");
   });
 });
+
+function renderPage(page: ReactElement) {
+  return render(<ThemeProvider>{page}</ThemeProvider>);
+}
 
 function createBookmark(overrides: Partial<Bookmark> = {}): Bookmark {
   return {
