@@ -10,5 +10,6 @@ test("root layout renders without error", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("h1")).toContainText("Stashbox");
+  await expect(page.getByRole("list", { name: "Bookmarks" })).toHaveCSS("display", "grid");
   expect(errors).toHaveLength(0);
 });
