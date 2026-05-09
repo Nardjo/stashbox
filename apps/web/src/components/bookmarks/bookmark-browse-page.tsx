@@ -1,5 +1,6 @@
 import type { Tag } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
+import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "~/components/theme/theme.tsx";
@@ -7,6 +8,7 @@ import { ThemeToggle } from "~/components/theme/theme.tsx";
 import { BookmarkGrid } from "./bookmark-grid.tsx";
 
 const bookmarkTypes = ["tweet", "youtube", "article", "image", "pdf", "other"] as const;
+const semanticSearchParamName = "semantic";
 const emptyBookmarkFilters: BookmarkFilters = { selectedTags: [], textFilter: "", typeFilter: "" };
 const filterControlClassName =
   "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:border-slate-200 dark:focus:ring-slate-200/10";
@@ -20,6 +22,7 @@ type BookmarkBrowsePageProps = {
   onSaveBookmark: (url: string) => Promise<void>;
   onDeleteBookmark: (id: string) => Promise<void>;
   onLoadMoreBookmarks?: (params: BookmarkPageParams) => Promise<Bookmark[]>;
+  onSearchBookmarks?: (query: string) => Promise<Bookmark[]>;
 };
 
 export function BookmarkBrowsePage({
@@ -31,15 +34,27 @@ export function BookmarkBrowsePage({
   onSaveBookmark,
   onDeleteBookmark,
   onLoadMoreBookmarks,
+  onSearchBookmarks,
 }: BookmarkBrowsePageProps) {
   const [visibleBookmarks, setVisibleBookmarks] = useState(bookmarks);
   const [filters, setFilters] = useState<BookmarkFilters>(emptyBookmarkFilters);
+  const [semanticQuery, setSemanticQuery] = useState(getInitialSemanticSearchQuery);
+  const [semanticResults, setSemanticResults] = useState<Bookmark[] | null>(null);
+  const [isSearchingBookmarks, setIsSearchingBookmarks] = useState(false);
   const [hasLoadedUrlFilters, setHasLoadedUrlFilters] = useState(false);
+  const [hasRestoredUrlSemanticSearch, setHasRestoredUrlSemanticSearch] = useState(false);
   const [canLoadMoreBookmarks, setCanLoadMoreBookmarks] = useState(hasMoreBookmarks);
   const [isLoadingMoreBookmarks, setIsLoadingMoreBookmarks] = useState(false);
   const filteredBookmarks = filterBookmarks(visibleBookmarks, filters);
-  const countLabel =
-    filteredBookmarks.length === 1 ? "1 Bookmark" : `${filteredBookmarks.length} Bookmarks`;
+  const isSemanticSearchActive = semanticResults !== null;
+  const displayedBookmarks = semanticResults ?? filteredBookmarks;
+  const hasEmptySemanticResults =
+    isSemanticSearchActive && !isSearchingBookmarks && displayedBookmarks.length === 0;
+  const countLabel = isSemanticSearchActive
+    ? formatSemanticResultCount(displayedBookmarks.length)
+    : filteredBookmarks.length === 1
+      ? "1 Bookmark"
+      : `${filteredBookmarks.length} Bookmarks`;
   const hasActiveFilters = hasActiveBookmarkFilters(filters);
 
   useEffect(() => {
@@ -57,6 +72,19 @@ export function BookmarkBrowsePage({
 
     syncBookmarkFiltersToUrl(filters);
   }, [filters, hasLoadedUrlFilters]);
+
+  useEffect(() => {
+    if (hasRestoredUrlSemanticSearch) return;
+
+    setHasRestoredUrlSemanticSearch(true);
+    const query = semanticQuery.trim();
+    if (!query || !onSearchBookmarks) return;
+
+    setIsSearchingBookmarks(true);
+    void onSearchBookmarks(query)
+      .then((results) => setSemanticResults(results))
+      .finally(() => setIsSearchingBookmarks(false));
+  }, [hasRestoredUrlSemanticSearch, onSearchBookmarks, semanticQuery]);
 
   async function handleDeleteBookmark(id: string) {
     await onDeleteBookmark(id);
@@ -79,6 +107,22 @@ export function BookmarkBrowsePage({
     }
   }
 
+  async function handleSemanticSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const query = semanticQuery.trim();
+    if (!query || !onSearchBookmarks || isSearchingBookmarks) return;
+
+    syncSemanticSearchToUrl(query);
+    setIsSearchingBookmarks(true);
+    try {
+      const results = await onSearchBookmarks(query);
+      setSemanticResults(results);
+    } finally {
+      setIsSearchingBookmarks(false);
+    }
+  }
+
   function toggleTag(tag: string) {
     setFilters((current) => {
       if (current.selectedTags.includes(tag)) {
@@ -94,6 +138,12 @@ export function BookmarkBrowsePage({
 
   function clearFilters() {
     setFilters(emptyBookmarkFilters);
+  }
+
+  function clearSemanticSearch() {
+    setSemanticQuery("");
+    setSemanticResults(null);
+    syncSemanticSearchToUrl("");
   }
 
   return (
@@ -124,6 +174,46 @@ export function BookmarkBrowsePage({
             </p>
           ) : null}
         </header>
+        <form
+          role="search"
+          aria-label="Recherche sémantique"
+          onSubmit={handleSemanticSearch}
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        >
+          <label
+            htmlFor="semantic-search-query"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+          >
+            Rechercher par sens
+          </label>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            <input
+              id="semantic-search-query"
+              type="search"
+              value={semanticQuery}
+              onChange={(event) => setSemanticQuery(event.target.value)}
+              disabled={isSearchingBookmarks}
+              placeholder="Ex: articles sur l'architecture produit"
+              className={filterControlClassName}
+            />
+            <button
+              type="submit"
+              disabled={isSearchingBookmarks}
+              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-300"
+            >
+              {isSearchingBookmarks ? "Recherche..." : "Rechercher"}
+            </button>
+            {isSemanticSearchActive ? (
+              <button
+                type="button"
+                onClick={clearSemanticSearch}
+                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Effacer la recherche sémantique
+              </button>
+            ) : null}
+          </div>
+        </form>
         <section
           aria-label="Filtres de Bookmarks"
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -197,12 +287,19 @@ export function BookmarkBrowsePage({
             </button>
           ) : null}
         </section>
-        <BookmarkGrid
-          bookmarks={filteredBookmarks}
-          onSaveBookmark={onSaveBookmark}
-          onDeleteBookmark={handleDeleteBookmark}
-        />
-        {onLoadMoreBookmarks && canLoadMoreBookmarks ? (
+        {hasEmptySemanticResults ? (
+          <p className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+            Aucun résultat sémantique.
+          </p>
+        ) : (
+          <BookmarkGrid
+            bookmarks={displayedBookmarks}
+            onSaveBookmark={onSaveBookmark}
+            onDeleteBookmark={handleDeleteBookmark}
+            showAddBookmarkCard={!isSemanticSearchActive}
+          />
+        )}
+        {onLoadMoreBookmarks && canLoadMoreBookmarks && !isSemanticSearchActive ? (
           <div className="flex justify-center">
             <button
               type="button"
@@ -245,6 +342,12 @@ function getInitialBookmarkFilters(): BookmarkFilters {
   };
 }
 
+function getInitialSemanticSearchQuery() {
+  if (typeof window === "undefined") return "";
+
+  return new URLSearchParams(window.location.search).get(semanticSearchParamName) ?? "";
+}
+
 function syncBookmarkFiltersToUrl(filters: BookmarkFilters) {
   if (typeof window === "undefined") return;
 
@@ -266,6 +369,22 @@ function syncBookmarkFiltersToUrl(filters: BookmarkFilters) {
     params.set("tags", filters.selectedTags.join(","));
   } else {
     params.delete("tags");
+  }
+
+  const search = params.toString();
+  const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+  window.history.replaceState(window.history.state, "", nextUrl);
+}
+
+function syncSemanticSearchToUrl(query: string) {
+  if (typeof window === "undefined") return;
+
+  const params = new URLSearchParams(window.location.search);
+  const trimmedQuery = query.trim();
+  if (trimmedQuery) {
+    params.set(semanticSearchParamName, trimmedQuery);
+  } else {
+    params.delete(semanticSearchParamName);
   }
 
   const search = params.toString();
@@ -301,6 +420,10 @@ function filterBookmarks(bookmarks: Bookmark[], filters: BookmarkFilters) {
 
 function hasActiveBookmarkFilters(filters: BookmarkFilters) {
   return Boolean(filters.textFilter || filters.typeFilter || filters.selectedTags.length > 0);
+}
+
+function formatSemanticResultCount(count: number) {
+  return count === 1 ? "1 résultat sémantique" : `${count} résultats sémantiques`;
 }
 
 function filterBookmarksByText(bookmarks: Bookmark[], textFilter: string) {

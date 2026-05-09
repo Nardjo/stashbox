@@ -8,6 +8,7 @@ import {
   deleteBookmark,
   listBookmarks,
   loadInitialBrowseData,
+  searchBookmarks,
 } from "~/server/stashbox.ts";
 
 export const Route = createFileRoute("/")({
@@ -22,6 +23,7 @@ function HomePage() {
   const saveBookmark = useSaveBookmark();
   const removeBookmark = useDeleteBookmark();
   const loadMoreBookmarks = useLoadMoreBookmarks();
+  const semanticSearchBookmarks = useSearchBookmarks();
 
   return (
     <BookmarkBrowsePage
@@ -32,6 +34,7 @@ function HomePage() {
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}
       onLoadMoreBookmarks={loadMoreBookmarks}
+      onSearchBookmarks={semanticSearchBookmarks}
     />
   );
 }
@@ -39,6 +42,7 @@ function HomePage() {
 function HomeErrorPage() {
   const saveBookmark = useSaveBookmark();
   const removeBookmark = useDeleteBookmark();
+  const semanticSearchBookmarks = useSearchBookmarks();
 
   return (
     <BookmarkBrowsePage
@@ -47,6 +51,7 @@ function HomeErrorPage() {
       loadError="Impossible de charger les Bookmarks."
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}
+      onSearchBookmarks={semanticSearchBookmarks}
     />
   );
 }
@@ -69,5 +74,13 @@ function useDeleteBookmark() {
 function useLoadMoreBookmarks() {
   return async (params: { limit: number; offset: number }) => {
     return ((await listBookmarks({ data: params })) as Bookmark[] | undefined) ?? [];
+  };
+}
+
+function useSearchBookmarks() {
+  return async (query: string) => {
+    return (
+      ((await searchBookmarks({ data: { query, limit: 48 } })) as Bookmark[] | undefined) ?? []
+    );
   };
 }

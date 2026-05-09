@@ -1,33 +1,34 @@
-# Issue #41 - Bookmark Grid Pagination
+# Issue #40 - Semantic Search Bar
 
 ## Plan
 
-- [x] RED: prove initial browse data exposes page size and `hasMoreBookmarks`.
-- [x] GREEN: return pagination metadata from the home loader.
-- [x] RED: prove "Charger plus" fetches the next page with `offset: 48` and appends cards.
-- [x] GREEN: add load-more callback, loading state, and append behavior.
-- [x] RED: prove load trigger is hidden when the returned page is shorter than the limit.
-- [x] GREEN: compute `hasMoreBookmarks` after each page.
-- [x] RED: prove pagination state resets when filters change.
-- [x] GREEN: reset loaded pages to the initial page on filter changes.
+- [x] RED: prove a distinct semantic search input is visible on the browse page.
+- [x] GREEN: add the semantic search form shell.
+- [x] RED: prove submitting a query calls search with the query and replaces the browse grid.
+- [x] GREEN: wire semantic search callback and search-mode results.
+- [x] RED: prove a loading state is shown while search is in flight.
+- [x] GREEN: add semantic search pending state.
+- [x] RED: prove empty semantic results show an empty state.
+- [x] GREEN: add search empty state.
+- [x] RED: prove clearing semantic search restores browse mode.
+- [x] GREEN: add clear control and browse restore.
+- [x] RED: prove active semantic query is reflected in the URL and restored on load.
+- [x] GREEN: sync semantic search query to URL.
 - [x] Refactor only after green.
 - [x] Verify with web tests, typecheck, targeted lint, and build.
-- [x] Push branch and create draft PR linked with `Closes #41`.
+- [x] Push branch and create draft PR linked with `Closes #40`.
 
 ## Scope
 
 - App: `apps/web`.
-- Public interface: Owner loads more Bookmarks from the main browse grid.
-- Trigger: explicit "Charger plus" button.
+- Public interface: Owner searches Bookmarks semantically from the main page.
+- Search mode replaces the browse grid while active.
 - User-facing copy: French.
 
 ## Review
 
-- `pnpm --filter @stashbox/web test` passed: 49 tests.
-- `pnpm --filter @stashbox/web typecheck` passed.
-- Targeted ESLint passed on modified web files.
-- `pnpm --filter @stashbox/web build` passed.
-- Full `pnpm --filter @stashbox/web lint` is blocked by pre-existing generated
-  `apps/web/app.config.timestamp_*.js` import-sort errors and unrelated import
-  order errors outside this change.
-- Draft PR: https://github.com/Nardjo/stashbox/pull/50
+- Added a dedicated semantic search form on the browse page.
+- Submitting a query calls the route-provided `searchBookmarks` callback and swaps the browse grid for semantic results.
+- Search mode hides pagination and the add-card, reuses `BookmarkCard` for results, supports loading, empty, clear, and URL restore via `?semantic=...`.
+- Validation passed: `pnpm --filter @stashbox/web test`, `pnpm --filter @stashbox/web typecheck`, targeted `eslint`, `pnpm --filter @stashbox/web build`.
+- Full `pnpm --filter @stashbox/web lint` remains blocked by existing import-sort errors in generated `app.config.timestamp_*.js` and unrelated files.
