@@ -1,10 +1,14 @@
 import type { Bookmark } from "@stashbox/shared";
+import { useState } from "react";
 
 type BookmarkCardProps = {
   bookmark: Bookmark;
+  onDeleteBookmark: (id: string) => Promise<void>;
 };
 
-export function BookmarkCard({ bookmark }: BookmarkCardProps) {
+export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) {
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const domain = getDomain(bookmark.url);
   const isLoading =
     bookmark.enrichmentStatus === "pending" || bookmark.enrichmentStatus === "enriching";
@@ -74,7 +78,62 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
             </span>
           ))}
         </div>
+        <button
+          type="button"
+          aria-label={`Supprimer ${bookmark.title}`}
+          onClick={() => setIsConfirmingDelete(true)}
+          className="rounded-full border border-rose-200 px-3 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
+        >
+          Supprimer
+        </button>
       </div>
+      {isConfirmingDelete ? (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={`delete-title-${bookmark.id}`}
+          aria-describedby={`delete-description-${bookmark.id}`}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+        >
+          <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-5 text-slate-950 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+            <h3 id={`delete-title-${bookmark.id}`} className="text-lg font-semibold">
+              Supprimer ce bookmark ?
+            </h3>
+            <p
+              id={`delete-description-${bookmark.id}`}
+              className="mt-2 text-sm text-slate-600 dark:text-slate-300"
+            >
+              Cette action retirera "{bookmark.title}" de votre grille.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmingDelete(false)}
+                disabled={isDeleting}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await onDeleteBookmark(bookmark.id);
+                    setIsConfirmingDelete(false);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                disabled={isDeleting}
+                className="rounded-full bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
+              >
+                {isDeleting ? "Suppression..." : "Supprimer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
