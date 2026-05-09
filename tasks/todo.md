@@ -16,7 +16,7 @@
 - [x] GREEN: sync semantic search query to URL.
 - [x] Refactor only after green.
 - [x] Verify with web tests, typecheck, targeted lint, and build.
-- [ ] Push branch and create draft PR linked with `Closes #40`.
+- [x] Push branch and create draft PR linked with `Closes #40`.
 
 ## Scope
 
