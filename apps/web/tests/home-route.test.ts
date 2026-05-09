@@ -1,3 +1,4 @@
+import type { Tag } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -7,22 +8,30 @@ describe("home route", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads the first page of Bookmarks through the server function", async () => {
+  it("loads the first page of Bookmarks and Tags through the server functions", async () => {
     vi.stubEnv("STASHBOX_API_URL", "https://stashbox.example");
     vi.stubEnv("STASHBOX_API_KEY", "secret-key");
     vi.resetModules();
 
     const bookmark = createBookmark({ title: "Readable systems" });
+    const tags: Tag[] = [{ tag: "architecture", count: 1 }];
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     vi.stubGlobal("fetch", async (url: string | URL | Request, init?: RequestInit) => {
       requests.push({ url: String(url), init });
+      if (String(url).endsWith("/tags")) return Response.json({ results: tags });
       return Response.json({ results: [bookmark] });
     });
 
     const { Route } = await import("~/routes/index.tsx");
 
-    await expect(Route.options.loader?.({} as never)).resolves.toEqual([bookmark]);
-    expect(requests[0]?.url).toBe("https://stashbox.example/bookmarks?limit=48&offset=0");
+    await expect(Route.options.loader?.({} as never)).resolves.toEqual({
+      bookmarks: [bookmark],
+      tags,
+    });
+    expect(requests.map((request) => request.url)).toEqual([
+      "https://stashbox.example/bookmarks?limit=48&offset=0",
+      "https://stashbox.example/tags",
+    ]);
   });
 });
 

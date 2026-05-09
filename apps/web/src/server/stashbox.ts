@@ -1,4 +1,4 @@
-import type { AddParams, ListParams, SearchParams } from "@stashbox/api-client";
+import type { AddParams, ListParams, SearchParams, Tag } from "@stashbox/api-client";
 import { StashboxClient } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
 import { createServerFn, serverOnly } from "@tanstack/react-start";
@@ -107,9 +107,15 @@ export const listTags = createServerFn({ method: "GET" })
   .type("dynamic")
   .handler(async () => createStashboxServerOperations().listTags());
 
-export async function loadInitialBookmarks() {
-  return (
-    ((await listBookmarks({ data: initialBookmarksPage })) as Bookmark[] | undefined) ??
-    createStashboxServerOperations().listBookmarks(initialBookmarksPage)
-  );
+export type InitialBrowseData = {
+  bookmarks: Bookmark[];
+  tags: Tag[];
+};
+
+export async function loadInitialBrowseData(): Promise<InitialBrowseData> {
+  const operations = createStashboxServerOperations();
+  const bookmarks = await operations.listBookmarks(initialBookmarksPage);
+  const tags = await operations.listTags();
+
+  return { bookmarks, tags };
 }
