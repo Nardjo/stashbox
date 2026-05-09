@@ -12,7 +12,7 @@
 - [x] GREEN: reset loaded pages to the initial page on filter changes.
 - [x] Refactor only after green.
 - [x] Verify with web tests, typecheck, targeted lint, and build.
-- [ ] Push branch and create draft PR linked with `Closes #41`.
+- [x] Push branch and create draft PR linked with `Closes #41`.
 
 ## Scope
 
@@ -30,3 +30,4 @@
 - Full `pnpm --filter @stashbox/web lint` is blocked by pre-existing generated
   `apps/web/app.config.timestamp_*.js` import-sort errors and unrelated import
   order errors outside this change.
+- Draft PR: https://github.com/Nardjo/stashbox/pull/50
