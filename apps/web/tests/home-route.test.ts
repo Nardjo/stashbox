@@ -13,19 +13,26 @@ describe("home route", () => {
     vi.stubEnv("STASHBOX_API_KEY", "secret-key");
     vi.resetModules();
 
-    const bookmark = createBookmark({ title: "Readable systems" });
+    const bookmarks = Array.from({ length: 48 }, (_, index) =>
+      createBookmark({
+        id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        title: `Readable systems ${index + 1}`,
+      }),
+    );
     const tags: Tag[] = [{ tag: "architecture", count: 1 }];
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     vi.stubGlobal("fetch", async (url: string | URL | Request, init?: RequestInit) => {
       requests.push({ url: String(url), init });
       if (String(url).endsWith("/tags")) return Response.json({ results: tags });
-      return Response.json({ results: [bookmark] });
+      return Response.json({ results: bookmarks });
     });
 
     const { Route } = await import("~/routes/index.tsx");
 
     await expect(Route.options.loader?.({} as never)).resolves.toEqual({
-      bookmarks: [bookmark],
+      bookmarkPageSize: 48,
+      bookmarks,
+      hasMoreBookmarks: true,
       tags,
     });
     expect(requests.map((request) => request.url)).toEqual([

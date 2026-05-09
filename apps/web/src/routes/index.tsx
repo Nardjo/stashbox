@@ -1,8 +1,14 @@
+import type { Bookmark } from "@stashbox/shared";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
 import { BookmarkBrowsePage } from "~/components/bookmarks/bookmark-browse-page.tsx";
 import type { InitialBrowseData } from "~/server/stashbox.ts";
-import { addBookmark, deleteBookmark, loadInitialBrowseData } from "~/server/stashbox.ts";
+import {
+  addBookmark,
+  deleteBookmark,
+  listBookmarks,
+  loadInitialBrowseData,
+} from "~/server/stashbox.ts";
 
 export const Route = createFileRoute("/")({
   loader: () => loadInitialBrowseData(),
@@ -11,16 +17,21 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { bookmarks, tags } = Route.useLoaderData() as InitialBrowseData;
+  const { bookmarkPageSize, bookmarks, hasMoreBookmarks, tags } =
+    Route.useLoaderData() as InitialBrowseData;
   const saveBookmark = useSaveBookmark();
   const removeBookmark = useDeleteBookmark();
+  const loadMoreBookmarks = useLoadMoreBookmarks();
 
   return (
     <BookmarkBrowsePage
+      bookmarkPageSize={bookmarkPageSize}
       bookmarks={bookmarks}
+      hasMoreBookmarks={hasMoreBookmarks}
       tags={tags}
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}
+      onLoadMoreBookmarks={loadMoreBookmarks}
     />
   );
 }
@@ -52,5 +63,11 @@ function useSaveBookmark() {
 function useDeleteBookmark() {
   return async (id: string) => {
     await deleteBookmark({ data: { id } });
+  };
+}
+
+function useLoadMoreBookmarks() {
+  return async (params: { limit: number; offset: number }) => {
+    return ((await listBookmarks({ data: params })) as Bookmark[] | undefined) ?? [];
   };
 }

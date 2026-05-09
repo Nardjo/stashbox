@@ -12,23 +12,31 @@ const filterControlClassName =
   "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:border-slate-200 dark:focus:ring-slate-200/10";
 
 type BookmarkBrowsePageProps = {
+  bookmarkPageSize?: number;
   bookmarks: Bookmark[];
+  hasMoreBookmarks?: boolean;
   tags?: Tag[];
   loadError?: string;
   onSaveBookmark: (url: string) => Promise<void>;
   onDeleteBookmark: (id: string) => Promise<void>;
+  onLoadMoreBookmarks?: (params: BookmarkPageParams) => Promise<Bookmark[]>;
 };
 
 export function BookmarkBrowsePage({
+  bookmarkPageSize = 48,
   bookmarks,
+  hasMoreBookmarks = false,
   tags = [],
   loadError,
   onSaveBookmark,
   onDeleteBookmark,
+  onLoadMoreBookmarks,
 }: BookmarkBrowsePageProps) {
   const [visibleBookmarks, setVisibleBookmarks] = useState(bookmarks);
   const [filters, setFilters] = useState<BookmarkFilters>(emptyBookmarkFilters);
   const [hasLoadedUrlFilters, setHasLoadedUrlFilters] = useState(false);
+  const [canLoadMoreBookmarks, setCanLoadMoreBookmarks] = useState(hasMoreBookmarks);
+  const [isLoadingMoreBookmarks, setIsLoadingMoreBookmarks] = useState(false);
   const filteredBookmarks = filterBookmarks(visibleBookmarks, filters);
   const countLabel =
     filteredBookmarks.length === 1 ? "1 Bookmark" : `${filteredBookmarks.length} Bookmarks`;
@@ -36,7 +44,8 @@ export function BookmarkBrowsePage({
 
   useEffect(() => {
     setVisibleBookmarks(bookmarks);
-  }, [bookmarks]);
+    setCanLoadMoreBookmarks(hasMoreBookmarks);
+  }, [bookmarks, filters, hasMoreBookmarks]);
 
   useEffect(() => {
     setFilters(getInitialBookmarkFilters());
@@ -52,6 +61,22 @@ export function BookmarkBrowsePage({
   async function handleDeleteBookmark(id: string) {
     await onDeleteBookmark(id);
     setVisibleBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
+  }
+
+  async function handleLoadMoreBookmarks() {
+    if (!onLoadMoreBookmarks || isLoadingMoreBookmarks) return;
+
+    setIsLoadingMoreBookmarks(true);
+    try {
+      const nextBookmarks = await onLoadMoreBookmarks({
+        limit: bookmarkPageSize,
+        offset: visibleBookmarks.length,
+      });
+      setVisibleBookmarks((current) => [...current, ...nextBookmarks]);
+      setCanLoadMoreBookmarks(nextBookmarks.length === bookmarkPageSize);
+    } finally {
+      setIsLoadingMoreBookmarks(false);
+    }
   }
 
   function toggleTag(tag: string) {
@@ -177,10 +202,27 @@ export function BookmarkBrowsePage({
           onSaveBookmark={onSaveBookmark}
           onDeleteBookmark={handleDeleteBookmark}
         />
+        {onLoadMoreBookmarks && canLoadMoreBookmarks ? (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={handleLoadMoreBookmarks}
+              disabled={isLoadingMoreBookmarks}
+              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-300"
+            >
+              {isLoadingMoreBookmarks ? "Chargement..." : "Charger plus"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </main>
   );
 }
+
+type BookmarkPageParams = {
+  limit: number;
+  offset: number;
+};
 
 type BookmarkFilters = {
   selectedTags: string[];
