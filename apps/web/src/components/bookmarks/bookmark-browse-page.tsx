@@ -5,9 +5,14 @@ import { BookmarkGrid } from "./bookmark-grid.tsx";
 type BookmarkBrowsePageProps = {
   bookmarks: Bookmark[];
   loadError?: string;
+  onSaveBookmark: (url: string) => Promise<void>;
 };
 
-export function BookmarkBrowsePage({ bookmarks, loadError }: BookmarkBrowsePageProps) {
+export function BookmarkBrowsePage({
+  bookmarks,
+  loadError,
+  onSaveBookmark,
+}: BookmarkBrowsePageProps) {
   const countLabel = bookmarks.length === 1 ? "1 Bookmark" : `${bookmarks.length} Bookmarks`;
 
   return (
@@ -33,7 +38,7 @@ export function BookmarkBrowsePage({ bookmarks, loadError }: BookmarkBrowsePageP
             </p>
           ) : null}
         </header>
-        <BookmarkGrid bookmarks={bookmarks} />
+        <BookmarkGrid bookmarks={bookmarks} onSaveBookmark={onSaveBookmark} />
       </div>
     </main>
   );
