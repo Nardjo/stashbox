@@ -1,33 +1,30 @@
-# Issue #41 - Bookmark Grid Pagination
+# Issue #40 - Semantic Search Bar
 
 ## Plan
 
-- [x] RED: prove initial browse data exposes page size and `hasMoreBookmarks`.
-- [x] GREEN: return pagination metadata from the home loader.
-- [x] RED: prove "Charger plus" fetches the next page with `offset: 48` and appends cards.
-- [x] GREEN: add load-more callback, loading state, and append behavior.
-- [x] RED: prove load trigger is hidden when the returned page is shorter than the limit.
-- [x] GREEN: compute `hasMoreBookmarks` after each page.
-- [x] RED: prove pagination state resets when filters change.
-- [x] GREEN: reset loaded pages to the initial page on filter changes.
-- [x] Refactor only after green.
-- [x] Verify with web tests, typecheck, targeted lint, and build.
-- [x] Push branch and create draft PR linked with `Closes #41`.
+- [ ] RED: prove a distinct semantic search input is visible on the browse page.
+- [ ] GREEN: add the semantic search form shell.
+- [ ] RED: prove submitting a query calls search with the query and replaces the browse grid.
+- [ ] GREEN: wire semantic search callback and search-mode results.
+- [ ] RED: prove a loading state is shown while search is in flight.
+- [ ] GREEN: add semantic search pending state.
+- [ ] RED: prove empty semantic results show an empty state.
+- [ ] GREEN: add search empty state.
+- [ ] RED: prove clearing semantic search restores browse mode.
+- [ ] GREEN: add clear control and browse restore.
+- [ ] RED: prove active semantic query is reflected in the URL and restored on load.
+- [ ] GREEN: sync semantic search query to URL.
+- [ ] Refactor only after green.
+- [ ] Verify with web tests, typecheck, targeted lint, and build.
+- [ ] Push branch and create draft PR linked with `Closes #40`.
 
 ## Scope
 
 - App: `apps/web`.
-- Public interface: Owner loads more Bookmarks from the main browse grid.
-- Trigger: explicit "Charger plus" button.
+- Public interface: Owner searches Bookmarks semantically from the main page.
+- Search mode replaces the browse grid while active.
 - User-facing copy: French.
 
 ## Review
 
-- `pnpm --filter @stashbox/web test` passed: 49 tests.
-- `pnpm --filter @stashbox/web typecheck` passed.
-- Targeted ESLint passed on modified web files.
-- `pnpm --filter @stashbox/web build` passed.
-- Full `pnpm --filter @stashbox/web lint` is blocked by pre-existing generated
-  `apps/web/app.config.timestamp_*.js` import-sort errors and unrelated import
-  order errors outside this change.
-- Draft PR: https://github.com/Nardjo/stashbox/pull/50
+- Pending.
