@@ -1,4 +1,5 @@
 import type { Bookmark } from "@stashbox/shared";
+import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "~/components/theme/theme.tsx";
 
@@ -8,14 +9,27 @@ type BookmarkBrowsePageProps = {
   bookmarks: Bookmark[];
   loadError?: string;
   onSaveBookmark: (url: string) => Promise<void>;
+  onDeleteBookmark: (id: string) => Promise<void>;
 };
 
 export function BookmarkBrowsePage({
   bookmarks,
   loadError,
   onSaveBookmark,
+  onDeleteBookmark,
 }: BookmarkBrowsePageProps) {
-  const countLabel = bookmarks.length === 1 ? "1 Bookmark" : `${bookmarks.length} Bookmarks`;
+  const [visibleBookmarks, setVisibleBookmarks] = useState(bookmarks);
+  const countLabel =
+    visibleBookmarks.length === 1 ? "1 Bookmark" : `${visibleBookmarks.length} Bookmarks`;
+
+  useEffect(() => {
+    setVisibleBookmarks(bookmarks);
+  }, [bookmarks]);
+
+  async function handleDeleteBookmark(id: string) {
+    await onDeleteBookmark(id);
+    setVisibleBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:px-6 lg:px-8">
@@ -45,7 +59,11 @@ export function BookmarkBrowsePage({
             </p>
           ) : null}
         </header>
-        <BookmarkGrid bookmarks={bookmarks} onSaveBookmark={onSaveBookmark} />
+        <BookmarkGrid
+          bookmarks={visibleBookmarks}
+          onSaveBookmark={onSaveBookmark}
+          onDeleteBookmark={handleDeleteBookmark}
+        />
       </div>
     </main>
   );

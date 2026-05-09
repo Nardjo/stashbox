@@ -1,6 +1,6 @@
 import type { Bookmark } from "@stashbox/shared";
-import type { ReactElement } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BookmarkBrowsePage } from "~/components/bookmarks/bookmark-browse-page.tsx";
@@ -18,6 +18,7 @@ describe("BookmarkBrowsePage", () => {
       <BookmarkBrowsePage
         bookmarks={[createBookmark({ title: "Readable systems" })]}
         onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
       />,
     );
 
@@ -35,6 +36,7 @@ describe("BookmarkBrowsePage", () => {
           createBookmark({ id: "00000000-0000-4000-8000-000000000002" }),
         ]}
         onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
       />,
     );
 
@@ -47,6 +49,7 @@ describe("BookmarkBrowsePage", () => {
         bookmarks={[]}
         loadError="Impossible de charger les Bookmarks."
         onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
       />,
     );
 
@@ -55,7 +58,13 @@ describe("BookmarkBrowsePage", () => {
   });
 
   it("switches the visible theme from the header", () => {
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Activer le thème sombre" }));
 
@@ -64,7 +73,13 @@ describe("BookmarkBrowsePage", () => {
   });
 
   it("keeps the selected theme for the next page load", () => {
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Activer le thème sombre" }));
 
@@ -76,7 +91,13 @@ describe("BookmarkBrowsePage", () => {
       matches: query === "(prefers-color-scheme: dark)",
     }));
 
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
     expect(screen.getByRole("button", { name: "Activer le thème clair" })).toBeInTheDocument();
@@ -86,7 +107,13 @@ describe("BookmarkBrowsePage", () => {
     localStorage.setItem("stashbox-theme", "dark");
     vi.stubGlobal("matchMedia", () => ({ matches: false }));
 
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={async () => {}} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
     expect(screen.getByRole("button", { name: "Activer le thème clair" })).toBeInTheDocument();
@@ -98,6 +125,7 @@ describe("BookmarkBrowsePage", () => {
       <BookmarkBrowsePage
         bookmarks={[createBookmark({ title: "Readable systems" })]}
         onSaveBookmark={saveBookmark}
+        onDeleteBookmark={async () => {}}
       />,
     );
 
@@ -116,7 +144,13 @@ describe("BookmarkBrowsePage", () => {
 
   it("shows an inline error without saving when the Bookmark URL is invalid", () => {
     const saveBookmark = vi.fn().mockResolvedValue(undefined);
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={saveBookmark}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
     const input = within(addCard).getByLabelText("URL du Bookmark");
@@ -138,7 +172,13 @@ describe("BookmarkBrowsePage", () => {
           finishSave = resolve;
         }),
     );
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={saveBookmark}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
     const input = within(addCard).getByLabelText("URL du Bookmark");
@@ -157,7 +197,13 @@ describe("BookmarkBrowsePage", () => {
 
   it("shows a server error without clearing the Bookmark URL", async () => {
     const saveBookmark = vi.fn().mockRejectedValue(new Error("API unavailable"));
-    renderPage(<BookmarkBrowsePage bookmarks={[]} onSaveBookmark={saveBookmark} />);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={saveBookmark}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
     const input = within(addCard).getByLabelText("URL du Bookmark");
@@ -169,6 +215,97 @@ describe("BookmarkBrowsePage", () => {
       "Impossible de sauvegarder le Bookmark.",
     );
     expect(input).toHaveValue("https://example.com/new");
+  });
+
+  it("keeps the Bookmark when the delete confirmation is cancelled", () => {
+    const deleteBookmark = vi.fn().mockResolvedValue(undefined);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[createBookmark({ title: "Readable systems" })]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={deleteBookmark}
+      />,
+    );
+
+    const card = screen.getByRole("article", { name: "Readable systems" });
+    fireEvent.click(within(card).getByRole("button", { name: "Supprimer Readable systems" }));
+
+    expect(
+      screen.getByRole("alertdialog", { name: "Supprimer ce bookmark ?" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+
+    expect(
+      screen.queryByRole("alertdialog", { name: "Supprimer ce bookmark ?" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument();
+    expect(deleteBookmark).not.toHaveBeenCalled();
+  });
+
+  it("deletes the Bookmark and removes it from the grid when deletion is confirmed", async () => {
+    const deleteBookmark = vi.fn().mockResolvedValue(undefined);
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[createBookmark({ title: "Readable systems" })]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={deleteBookmark}
+      />,
+    );
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: "Readable systems" })).getByRole("button", {
+        name: "Supprimer Readable systems",
+      }),
+    );
+    fireEvent.click(
+      within(screen.getByRole("alertdialog", { name: "Supprimer ce bookmark ?" })).getByRole(
+        "button",
+        { name: "Supprimer" },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(deleteBookmark).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000001"),
+    );
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(screen.getByText("0 Bookmarks")).toBeInTheDocument();
+  });
+
+  it("disables the delete confirmation while deletion is in flight", async () => {
+    let finishDelete!: () => void;
+    const deleteBookmark = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishDelete = resolve;
+        }),
+    );
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[createBookmark({ title: "Readable systems" })]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={deleteBookmark}
+      />,
+    );
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: "Readable systems" })).getByRole("button", {
+        name: "Supprimer Readable systems",
+      }),
+    );
+    const dialog = screen.getByRole("alertdialog", { name: "Supprimer ce bookmark ?" });
+    const confirmButton = within(dialog).getByRole("button", { name: "Supprimer" });
+
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(confirmButton).toBeDisabled());
+    expect(confirmButton).toHaveTextContent("Suppression...");
+    expect(within(dialog).getByRole("button", { name: "Annuler" })).toBeDisabled();
+
+    finishDelete();
+    await waitFor(() =>
+      expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument(),
+    );
   });
 });
 

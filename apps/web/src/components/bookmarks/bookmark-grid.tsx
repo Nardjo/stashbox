@@ -6,9 +6,10 @@ import { BookmarkCard } from "./bookmark-card.tsx";
 type BookmarkGridProps = {
   bookmarks: Bookmark[];
   onSaveBookmark: (url: string) => Promise<void>;
+  onDeleteBookmark: (id: string) => Promise<void>;
 };
 
-export function BookmarkGrid({ bookmarks, onSaveBookmark }: BookmarkGridProps) {
+export function BookmarkGrid({ bookmarks, onSaveBookmark, onDeleteBookmark }: BookmarkGridProps) {
   return (
     <div
       role="list"
@@ -20,7 +21,7 @@ export function BookmarkGrid({ bookmarks, onSaveBookmark }: BookmarkGridProps) {
       </div>
       {bookmarks.map((bookmark) => (
         <div key={bookmark.id} role="listitem">
-          <BookmarkCard bookmark={bookmark} />
+          <BookmarkCard bookmark={bookmark} onDeleteBookmark={onDeleteBookmark} />
         </div>
       ))}
     </div>

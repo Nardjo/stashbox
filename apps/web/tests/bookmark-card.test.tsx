@@ -6,7 +6,7 @@ import { BookmarkCard } from "~/components/bookmarks/bookmark-card.tsx";
 
 describe("BookmarkCard", () => {
   it("shows the Bookmark title, domain, Tags, and Type", () => {
-    render(<BookmarkCard bookmark={createBookmark()} />);
+    render(<BookmarkCard bookmark={createBookmark()} onDeleteBookmark={async () => {}} />);
 
     expect(screen.getByRole("article", { name: /Readable systems/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Readable systems" })).toBeInTheDocument();
@@ -16,7 +16,12 @@ describe("BookmarkCard", () => {
   });
 
   it("shows the Open Graph thumbnail when available", () => {
-    render(<BookmarkCard bookmark={createBookmark({ ogImage: "https://example.com/og.png" })} />);
+    render(
+      <BookmarkCard
+        bookmark={createBookmark({ ogImage: "https://example.com/og.png" })}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     expect(screen.getByRole("img", { name: "Aperçu de Readable systems" })).toHaveAttribute(
       "src",
@@ -25,7 +30,12 @@ describe("BookmarkCard", () => {
   });
 
   it("shows a domain fallback when no thumbnail is available", () => {
-    render(<BookmarkCard bookmark={createBookmark({ ogImage: null })} />);
+    render(
+      <BookmarkCard
+        bookmark={createBookmark({ ogImage: null })}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
 
     expect(
       screen.getByRole("img", { name: "Aperçu indisponible pour example.com" }),
@@ -34,7 +44,10 @@ describe("BookmarkCard", () => {
 
   it("shows a loading state while enrichment is pending", () => {
     render(
-      <BookmarkCard bookmark={createBookmark({ enrichmentStatus: "pending", ogImage: null })} />,
+      <BookmarkCard
+        bookmark={createBookmark({ enrichmentStatus: "pending", ogImage: null })}
+        onDeleteBookmark={async () => {}}
+      />,
     );
 
     expect(screen.getByRole("status", { name: "Enrichissement en cours" })).toBeInTheDocument();
@@ -42,7 +55,10 @@ describe("BookmarkCard", () => {
 
   it("shows a loading state while enrichment is running", () => {
     render(
-      <BookmarkCard bookmark={createBookmark({ enrichmentStatus: "enriching", ogImage: null })} />,
+      <BookmarkCard
+        bookmark={createBookmark({ enrichmentStatus: "enriching", ogImage: null })}
+        onDeleteBookmark={async () => {}}
+      />,
     );
 
     expect(screen.getByRole("status", { name: "Enrichissement en cours" })).toBeInTheDocument();
@@ -50,7 +66,10 @@ describe("BookmarkCard", () => {
 
   it("shows a degraded status indicator", () => {
     render(
-      <BookmarkCard bookmark={createBookmark({ enrichmentStatus: "degraded", ogImage: null })} />,
+      <BookmarkCard
+        bookmark={createBookmark({ enrichmentStatus: "degraded", ogImage: null })}
+        onDeleteBookmark={async () => {}}
+      />,
     );
 
     expect(screen.getByText("Dégradé")).toBeInTheDocument();
@@ -63,6 +82,7 @@ describe("BookmarkCard", () => {
           enrichmentStatus: "degraded",
           ogImage: "https://example.com/og.png",
         })}
+        onDeleteBookmark={async () => {}}
       />,
     );
 
@@ -75,7 +95,10 @@ describe("BookmarkCard", () => {
 
   it("shows a distinct failed visual indicator", () => {
     render(
-      <BookmarkCard bookmark={createBookmark({ enrichmentStatus: "failed", ogImage: null })} />,
+      <BookmarkCard
+        bookmark={createBookmark({ enrichmentStatus: "failed", ogImage: null })}
+        onDeleteBookmark={async () => {}}
+      />,
     );
 
     expect(screen.getByText("Échec")).toBeInTheDocument();
