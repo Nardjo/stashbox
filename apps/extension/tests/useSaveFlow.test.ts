@@ -1,6 +1,7 @@
+import type { Bookmark } from "@stashbox/shared";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Bookmark } from "@stashbox/shared";
+
 import { useSaveFlow } from "../src/hooks/useSaveFlow.js";
 
 function makeBookmark(overrides: Partial<Bookmark> = {}): Bookmark {

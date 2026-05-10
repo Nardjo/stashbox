@@ -148,3 +148,4 @@ vite.config.ts.timestamp-*
 # Export files
 *.csv
 export-*.js
+/.idea/

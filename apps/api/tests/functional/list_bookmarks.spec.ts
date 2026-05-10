@@ -9,32 +9,42 @@ test.group('GET /bookmarks (list)', (group) => {
     auth = await authHeader()
   })
 
-  test('returns done+degraded ordered by savedAt DESC, excludes failed/pending/enriching', async ({
+  test('returns visible bookmarks ordered by savedAt DESC and excludes failed', async ({
     client,
     assert,
   }) => {
-    const old = new Date(Date.now() - 60_000)
-    const newer = new Date()
+    const oldest = new Date(Date.now() - 120_000)
+    const old = new Date(Date.now() - 90_000)
+    const newer = new Date(Date.now() - 60_000)
+    const newest = new Date()
+    const idPending = await seedBookmark({
+      url: 'https://pending.example.com/a',
+      enrichmentStatus: 'pending',
+      savedAt: newest,
+    })
+    const idEnriching = await seedBookmark({
+      url: 'https://enriching.example.com/a',
+      enrichmentStatus: 'enriching',
+      savedAt: newer,
+    })
     const idOld = await seedBookmark({
       url: 'https://old.example.com/a',
       enrichmentStatus: 'done',
-      savedAt: old,
+      savedAt: oldest,
     })
     const idNew = await seedBookmark({
       url: 'https://new.example.com/a',
       enrichmentStatus: 'degraded',
-      savedAt: newer,
+      savedAt: old,
     })
     await seedBookmark({ url: 'https://failed.example.com/a', enrichmentStatus: 'failed' })
-    await seedBookmark({ url: 'https://pending.example.com/a', enrichmentStatus: 'pending' })
-    await seedBookmark({ url: 'https://enriching.example.com/a', enrichmentStatus: 'enriching' })
 
     const res = await client.get('/bookmarks').headers(auth)
     res.assertStatus(200)
     const body = res.body() as { results: Array<{ id: string }> }
     assert.deepEqual(
       body.results.map((b) => b.id),
-      [idNew, idOld]
+      [idPending, idEnriching, idNew, idOld]
     )
   })
 

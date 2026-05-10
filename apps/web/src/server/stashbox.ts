@@ -1,5 +1,5 @@
 import type { AddParams, ListParams, SearchParams, Tag } from "@stashbox/api-client";
-import { StashboxClient } from "@stashbox/api-client";
+import { ApiError, StashboxClient } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
 import { createServerFn, serverOnly } from "@tanstack/react-start";
 import { z } from "zod";
@@ -91,12 +91,31 @@ export const searchBookmarks = createServerFn({ method: "POST" })
     async ({ data }): Promise<unknown> => createStashboxServerOperations().searchBookmarks(data),
   );
 
+export type AddBookmarkResult = {
+  alreadySaved: boolean;
+  bookmark: Bookmark;
+};
+
 export const addBookmark = createServerFn({ method: "POST" })
   .validator((data: AddParams) => addBookmarkSchema.parse(data))
   .type("dynamic")
-  .handler(
-    async ({ data }): Promise<unknown> => createStashboxServerOperations().addBookmark(data),
-  );
+  .handler(async ({ data }): Promise<unknown> => {
+    try {
+      return {
+        alreadySaved: false,
+        bookmark: await createStashboxServerOperations().addBookmark(data),
+      } satisfies AddBookmarkResult;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return {
+          alreadySaved: true,
+          bookmark: error.body as Bookmark,
+        } satisfies AddBookmarkResult;
+      }
+
+      throw error;
+    }
+  });
 
 export const deleteBookmark = createServerFn({ method: "POST" })
   .validator((data: { id: string }) => deleteBookmarkSchema.parse(data))
@@ -114,7 +133,7 @@ export type InitialBrowseData = {
   tags: Tag[];
 };
 
-export async function loadInitialBrowseData(): Promise<InitialBrowseData> {
+export const loadInitialBrowseDataFromApi = serverOnly(async (): Promise<InitialBrowseData> => {
   const operations = createStashboxServerOperations();
   const bookmarks = await operations.listBookmarks(initialBookmarksPage);
   const tags = await operations.listTags();
@@ -125,4 +144,8 @@ export async function loadInitialBrowseData(): Promise<InitialBrowseData> {
     hasMoreBookmarks: bookmarks.length === initialBookmarksPage.limit,
     tags,
   };
-}
+});
+
+export const loadInitialBrowseData = createServerFn({ method: "GET" })
+  .type("dynamic")
+  .handler(async (): Promise<unknown> => loadInitialBrowseDataFromApi());

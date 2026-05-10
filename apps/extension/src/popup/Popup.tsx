@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, StashboxClient } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { useSaveFlow } from "../hooks/useSaveFlow.js";
 import { getOptions, saveOptions } from "../lib/options.js";
 import { pollUntilDone } from "../lib/poll.js";
@@ -89,27 +90,8 @@ function IconSpinner({ className }: { className?: string }) {
   );
 }
 
-function IconSeal({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-      <circle cx="32" cy="32" r="24" stroke="currentColor" strokeWidth="0.75" opacity="0.25" />
-      <text
-        x="32"
-        y="27"
-        textAnchor="middle"
-        fill="currentColor"
-        fontSize="8"
-        fontFamily="'JetBrains Mono', monospace"
-        letterSpacing="2"
-        opacity="0.7"
-      >
-        STASHBOX
-      </text>
-      <path d="M20 34h24M22 38h20M24 42h16" stroke="currentColor" strokeWidth="0.5" opacity="0.3" />
-      <circle cx="32" cy="48" r="2" fill="currentColor" opacity="0.4" />
-    </svg>
-  );
+function LogoMark({ className }: { className?: string }) {
+  return <img className={className} src="icons/icon48.png" alt="" aria-hidden="true" />;
 }
 
 /* ─── Settings ─── */
@@ -140,9 +122,7 @@ function SettingsForm({ onSaved }: { onSaved: (client: StashboxClient) => void }
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-fade-up">
       <div className="space-y-1.5">
-        <label className="block text-[10px] font-medium tracking-widest uppercase text-parchment-300">
-          URL de l'API
-        </label>
+        <label className="technical-label block">URL de l'API</label>
         <input
           type="url"
           value={apiUrl}
@@ -153,9 +133,7 @@ function SettingsForm({ onSaved }: { onSaved: (client: StashboxClient) => void }
         />
       </div>
       <div className="space-y-1.5">
-        <label className="block text-[10px] font-medium tracking-widest uppercase text-parchment-300">
-          Clé API
-        </label>
+        <label className="technical-label block">Clé API</label>
         <input
           type="password"
           value={apiKey}
@@ -227,73 +205,89 @@ export function Popup() {
 
   if (!ready) {
     return (
-      <div className="w-[320px] h-40 flex items-center justify-center grain-overlay">
-        <div className="flex items-center gap-3 text-parchment-200">
+      <div className="archive-grid-surface grain-overlay flex h-44 w-[360px] items-center justify-center bg-vault-bg">
+        <div className="archive-panel flex items-center gap-3 rounded-sm px-4 py-3 text-parchment-200">
           <IconSpinner className="w-5 h-5 animate-spin text-brass-500" />
-          <span className="text-xs tracking-wide">Ouverture du coffre...</span>
+          <span className="font-mono text-xs tracking-wide">Ouverture de Stashbox...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-[320px] grain-overlay bg-vault-bg">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <div className="flex items-center gap-2.5">
-          {showSettings ? (
-            <button
-              onClick={() => setView("main")}
-              className="text-parchment-300 hover:text-brass-400 transition-colors"
-              title="Retour"
-            >
-              <IconArrowLeft className="w-4 h-4" />
-            </button>
-          ) : null}
-          <h1 className="font-display text-base font-semibold tracking-wide text-parchment-50">
-            {showSettings ? "Paramètres" : "stashbox"}
-          </h1>
+    <div className="archive-grid-surface grain-overlay w-[360px] bg-vault-bg text-parchment-50">
+      <div className="border-b border-vault-border bg-vault-surface/95 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <LogoMark className="h-12 w-12 shrink-0 rounded-sm border border-vault-border bg-[#17130D] object-cover" />
+            <div className="min-w-0">
+              <h1 className="font-display text-4xl font-semibold uppercase leading-none text-parchment-50">
+                {showSettings ? "Paramètres" : "Stashbox"}
+              </h1>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {showSettings ? (
+              <button
+                type="button"
+                onClick={() => setView("main")}
+                className="icon-button"
+                title="Retour"
+              >
+                <IconArrowLeft className="w-4 h-4" />
+              </button>
+            ) : null}
+            {client && !showSettings ? (
+              <button
+                type="button"
+                onClick={() => setView("settings")}
+                className="icon-button"
+                title="Paramètres"
+              >
+                <IconCog className="w-4 h-4" />
+              </button>
+            ) : null}
+          </div>
         </div>
-        {client && (
-          <button
-            onClick={() => setView(showSettings ? "main" : "settings")}
-            className="text-parchment-300 hover:text-brass-400 transition-colors p-1"
-            title={showSettings ? "Retour" : "Paramètres"}
-          >
-            <IconCog className="w-4 h-4" />
-          </button>
-        )}
       </div>
 
-      {/* Divider */}
-      <div className="mx-5 h-px bg-vault-border" />
-
-      {/* Content */}
-      <div className="px-5 py-4">
+      <div className="p-4">
         {showSettings ? (
-          <SettingsForm
-            onSaved={(c) => {
-              setClient(c);
-              setView("main");
-            }}
-          />
+          <div className="archive-panel rounded-sm p-4">
+            <SettingsForm
+              onSaved={(c) => {
+                setClient(c);
+                setView("main");
+              }}
+            />
+          </div>
         ) : (
-          <div className="space-y-4 min-h-[140px]">
-            {/* Loading states */}
+          <div className="min-h-[170px] space-y-4">
             {(state === "idle" || state === "saving") && (
-              <div className="flex flex-col items-center justify-center py-6 gap-3 animate-fade-up">
-                <IconSpinner className="w-8 h-8 animate-spin text-brass-500" />
-                <p className="text-xs text-parchment-200 tracking-wide">
-                  {state === "idle" ? "Préparation..." : "Sauvegarde en cours..."}
-                </p>
+              <div className="archive-panel rounded-sm p-4 animate-fade-up">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-vault-border bg-vault-elevated/70">
+                    <IconSpinner className="h-5 w-5 animate-spin text-brass-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="technical-label">
+                      {state === "idle" ? "Préparation" : "Capture en cours"}
+                    </p>
+                    <p className="mt-1 font-mono text-sm text-parchment-200">
+                      {state === "idle"
+                        ? "Lecture de l'onglet actif."
+                        : "Sauvegarde et enrichissement du bookmark."}
+                    </p>
+                  </div>
+                </div>
                 {state === "saving" && (
-                  <div className="w-full max-w-[180px] h-0.5 bg-vault-elevated rounded-full overflow-hidden">
+                  <div className="mt-4 h-1 w-full overflow-hidden rounded-sm bg-vault-elevated">
                     <div
-                      className="h-full bg-brass-500 rounded-full animate-[shimmer_1.5s_linear_infinite] w-full"
+                      className="h-full w-full animate-[shimmer_1.5s_linear_infinite] rounded-sm bg-brass-500"
                       style={{
                         backgroundSize: "200% 100%",
                         backgroundImage:
-                          "linear-gradient(90deg, #D4A853 0%, #F5F0E8 50%, #D4A853 100%)",
+                          "linear-gradient(90deg, #F0AA16 0%, #FBF8EF 50%, #F0AA16 100%)",
                       }}
                     />
                   </div>
@@ -301,60 +295,49 @@ export function Popup() {
               </div>
             )}
 
-            {/* Success states */}
             {(state === "saved" || state === "already-saved") && bookmark && (
-              <div className="space-y-4 animate-fade-up">
-                {/* Seal */}
-                <div className="flex justify-center py-1">
-                  <div
-                    className={`${state === "saved" ? "animate-seal-stamp" : ""} text-brass-500`}
+              <div className="archive-panel overflow-hidden rounded-sm animate-fade-up">
+                <div className="archive-grid-surface border-b border-vault-border p-4">
+                  <p className="technical-label">Résultat capture</p>
+                  <span
+                    className={`status-chip mt-2 ${
+                      state === "saved" ? "text-sage-600" : "text-brass-600"
+                    }`}
                   >
-                    <div className="w-16 h-16">
-                      <IconSeal className="w-full h-full" />
-                    </div>
-                  </div>
+                    {state === "saved" ? "Indexé" : "Déjà sauvegardé"}
+                  </span>
                 </div>
 
-                {/* Status */}
-                <div className="text-center">
-                  <p
-                    className={`text-[10px] font-medium tracking-[0.2em] uppercase ${state === "saved" ? "text-sage-500" : "text-brass-400"}`}
-                  >
-                    {state === "saved" ? "Enregistré" : "Déjà sauvegardé"}
+                <div className="space-y-3 p-4">
+                  <p className="line-clamp-3 font-display text-2xl font-semibold uppercase leading-none text-parchment-50">
+                    {bookmark.title}
                   </p>
+
+                  {bookmark.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {bookmark.tags.map((tag) => (
+                        <span key={tag} className="tag-pill">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : bookmark.enrichmentStatus === "pending" ||
+                    bookmark.enrichmentStatus === "enriching" ? (
+                    <div className="flex items-center gap-2 text-parchment-200">
+                      <IconSpinner className="h-3 w-3 animate-spin text-brass-600" />
+                      <span className="font-mono text-xs tracking-wide">Analyse en cours...</span>
+                    </div>
+                  ) : null}
                 </div>
-
-                {/* Title */}
-                <p className="text-sm font-medium text-parchment-50 leading-relaxed text-center font-display">
-                  {bookmark.title}
-                </p>
-
-                {/* Tags */}
-                {bookmark.tags.length > 0 ? (
-                  <div className="flex flex-wrap justify-center gap-1.5">
-                    {bookmark.tags.map((tag) => (
-                      <span key={tag} className="tag-pill">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : bookmark.enrichmentStatus === "pending" ||
-                  bookmark.enrichmentStatus === "enriching" ? (
-                  <div className="flex items-center justify-center gap-2 text-parchment-300">
-                    <IconSpinner className="w-3 h-3 animate-spin text-brass-500" />
-                    <span className="text-[10px] italic tracking-wide">Analyse en cours...</span>
-                  </div>
-                ) : null}
               </div>
             )}
 
-            {/* Failed */}
             {state === "failed" && (
-              <div className="space-y-4 animate-fade-up">
-                <div className="flex justify-center py-2">
-                  <div className="w-12 h-12 rounded-full border border-brick-500/30 flex items-center justify-center">
+              <div className="archive-panel rounded-sm p-4 animate-fade-up">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-brick-500/50 bg-brick-500/10">
                     <svg
-                      className="w-5 h-5 text-brick-500"
+                      className="h-5 w-5 text-brick-600"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth={1.5}
@@ -367,16 +350,14 @@ export function Popup() {
                       />
                     </svg>
                   </div>
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-brick-500">
-                    Échec
-                  </p>
-                  {error && <p className="text-[11px] text-parchment-300">{error}</p>}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="technical-label text-brick-600">Échec capture</p>
+                    {error && <p className="font-mono text-xs text-parchment-200">{error}</p>}
+                  </div>
                 </div>
                 <button
                   onClick={trigger}
-                  className="btn-ghost w-full flex items-center justify-center gap-2"
+                  className="btn-ghost mt-4 flex w-full items-center justify-center gap-2"
                 >
                   <svg
                     className="w-3.5 h-3.5"
@@ -399,14 +380,10 @@ export function Popup() {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="px-5 pb-3 pt-1">
-        <div className="h-px bg-vault-border mb-2" />
-        <div className="flex items-center justify-between">
-          <span className="text-[9px] text-parchment-300 tracking-wider uppercase">v0.1.0</span>
-          <span className="text-[9px] text-parchment-300 tracking-wider">
-            Agent-first bookmarks
-          </span>
+      <div className="border-t border-vault-border bg-vault-surface/80 px-4 py-3">
+        <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-parchment-300">
+          <span>v0.1.0</span>
+          <span>Agent-first</span>
         </div>
       </div>
     </div>

@@ -1,25 +1,33 @@
-import type { Tag } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
+import { SlidersHorizontal } from "lucide-react";
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ThemeToggle } from "~/components/theme/theme.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select.tsx";
 
+import type { SaveBookmarkResult } from "./add-bookmark-card.tsx";
 import { BookmarkGrid } from "./bookmark-grid.tsx";
 
 const bookmarkTypes = ["tweet", "youtube", "article", "image", "pdf", "other"] as const;
-const semanticSearchParamName = "semantic";
-const emptyBookmarkFilters: BookmarkFilters = { selectedTags: [], textFilter: "", typeFilter: "" };
+const searchParamName = "q";
+const legacySemanticSearchParamName = "semantic";
+const allBookmarkTypesValue = "all";
 const filterControlClassName =
-  "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:border-slate-200 dark:focus:ring-slate-200/10";
+  "w-full rounded-sm border border-input bg-card/80 px-3 py-2 font-mono text-sm text-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.04)] outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60";
 
 type BookmarkBrowsePageProps = {
   bookmarkPageSize?: number;
   bookmarks: Bookmark[];
   hasMoreBookmarks?: boolean;
-  tags?: Tag[];
   loadError?: string;
-  onSaveBookmark: (url: string) => Promise<void>;
+  onSaveBookmark: (url: string) => Promise<SaveBookmarkResult | void>;
   onDeleteBookmark: (id: string) => Promise<void>;
   onLoadMoreBookmarks?: (params: BookmarkPageParams) => Promise<Bookmark[]>;
   onSearchBookmarks?: (query: string) => Promise<Bookmark[]>;
@@ -29,7 +37,6 @@ export function BookmarkBrowsePage({
   bookmarkPageSize = 48,
   bookmarks,
   hasMoreBookmarks = false,
-  tags = [],
   loadError,
   onSaveBookmark,
   onDeleteBookmark,
@@ -37,33 +44,43 @@ export function BookmarkBrowsePage({
   onSearchBookmarks,
 }: BookmarkBrowsePageProps) {
   const [visibleBookmarks, setVisibleBookmarks] = useState(bookmarks);
-  const [filters, setFilters] = useState<BookmarkFilters>(emptyBookmarkFilters);
-  const [semanticQuery, setSemanticQuery] = useState(getInitialSemanticSearchQuery);
+  const [filters, setFilters] = useState<BookmarkFilters>(getInitialBookmarkFilters);
+  const [searchQuery, setSearchQuery] = useState(getInitialSearchQuery);
   const [semanticResults, setSemanticResults] = useState<Bookmark[] | null>(null);
   const [isSearchingBookmarks, setIsSearchingBookmarks] = useState(false);
   const [hasLoadedUrlFilters, setHasLoadedUrlFilters] = useState(false);
-  const [hasRestoredUrlSemanticSearch, setHasRestoredUrlSemanticSearch] = useState(false);
+  const [hasRestoredUrlSearch, setHasRestoredUrlSearch] = useState(false);
   const [canLoadMoreBookmarks, setCanLoadMoreBookmarks] = useState(hasMoreBookmarks);
   const [isLoadingMoreBookmarks, setIsLoadingMoreBookmarks] = useState(false);
-  const filteredBookmarks = filterBookmarks(visibleBookmarks, filters);
-  const isSemanticSearchActive = semanticResults !== null;
-  const displayedBookmarks = semanticResults ?? filteredBookmarks;
-  const hasEmptySemanticResults =
-    isSemanticSearchActive && !isSearchingBookmarks && displayedBookmarks.length === 0;
-  const countLabel = isSemanticSearchActive
-    ? formatSemanticResultCount(displayedBookmarks.length)
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const trimmedSearchQuery = searchQuery.trim();
+  const hasSearchQuery = trimmedSearchQuery.length > 0;
+  const filteredBookmarks = filterBookmarksByFacets(visibleBookmarks, filters);
+  const localSearchResults = hasSearchQuery
+    ? filterBookmarksByText(filteredBookmarks, trimmedSearchQuery)
+    : filteredBookmarks;
+  const filteredSemanticResults = semanticResults
+    ? filterBookmarksByFacets(semanticResults, filters)
+    : [];
+  const displayedBookmarks = hasSearchQuery
+    ? mergeBookmarks(localSearchResults, filteredSemanticResults)
+    : filteredBookmarks;
+  const hasEmptySearchResults =
+    hasSearchQuery && !isSearchingBookmarks && displayedBookmarks.length === 0;
+  const countLabel = hasSearchQuery
+    ? formatSearchResultCount(displayedBookmarks.length)
     : filteredBookmarks.length === 1
       ? "1 Bookmark"
       : `${filteredBookmarks.length} Bookmarks`;
   const hasActiveFilters = hasActiveBookmarkFilters(filters);
+  const selectedTypeLabel = filters.typeFilter || "Tous les types";
 
   useEffect(() => {
     setVisibleBookmarks(bookmarks);
     setCanLoadMoreBookmarks(hasMoreBookmarks);
-  }, [bookmarks, filters, hasMoreBookmarks]);
+  }, [bookmarks, filters, hasMoreBookmarks, searchQuery]);
 
   useEffect(() => {
-    setFilters(getInitialBookmarkFilters());
     setHasLoadedUrlFilters(true);
   }, []);
 
@@ -74,17 +91,31 @@ export function BookmarkBrowsePage({
   }, [filters, hasLoadedUrlFilters]);
 
   useEffect(() => {
-    if (hasRestoredUrlSemanticSearch) return;
+    if (hasRestoredUrlSearch) return;
 
-    setHasRestoredUrlSemanticSearch(true);
-    const query = semanticQuery.trim();
+    setHasRestoredUrlSearch(true);
+    const query = searchQuery.trim();
     if (!query || !onSearchBookmarks) return;
 
+    syncSearchToUrl(query);
     setIsSearchingBookmarks(true);
     void onSearchBookmarks(query)
       .then((results) => setSemanticResults(results))
       .finally(() => setIsSearchingBookmarks(false));
-  }, [hasRestoredUrlSemanticSearch, onSearchBookmarks, semanticQuery]);
+  }, [hasRestoredUrlSearch, onSearchBookmarks, searchQuery]);
+
+  useEffect(() => {
+    function handleSearchShortcut(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== "k" || (!event.metaKey && !event.ctrlKey)) return;
+      if (isEditableKeyboardTarget(event.target)) return;
+
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    }
+
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, []);
 
   async function handleDeleteBookmark(id: string) {
     await onDeleteBookmark(id);
@@ -107,13 +138,19 @@ export function BookmarkBrowsePage({
     }
   }
 
-  async function handleSemanticSearch(event: FormEvent<HTMLFormElement>) {
+  async function handleUnifiedSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const query = semanticQuery.trim();
-    if (!query || !onSearchBookmarks || isSearchingBookmarks) return;
+    const query = searchQuery.trim();
+    if (!query) {
+      clearSearch();
+      return;
+    }
 
-    syncSemanticSearchToUrl(query);
+    syncSearchToUrl(query);
+    setSearchQuery(query);
+    if (!onSearchBookmarks || isSearchingBookmarks) return;
+
     setIsSearchingBookmarks(true);
     try {
       const results = await onSearchBookmarks(query);
@@ -123,189 +160,150 @@ export function BookmarkBrowsePage({
     }
   }
 
-  function toggleTag(tag: string) {
-    setFilters((current) => {
-      if (current.selectedTags.includes(tag)) {
-        return {
-          ...current,
-          selectedTags: current.selectedTags.filter((selectedTag) => selectedTag !== tag),
-        };
-      }
-
-      return { ...current, selectedTags: [...current.selectedTags, tag] };
-    });
-  }
-
-  function clearFilters() {
-    setFilters(emptyBookmarkFilters);
-  }
-
-  function clearSemanticSearch() {
-    setSemanticQuery("");
+  function handleSearchQueryChange(value: string) {
+    setSearchQuery(value);
     setSemanticResults(null);
-    syncSemanticSearchToUrl("");
+    syncSearchToUrl(value);
+  }
+
+  function clearSearch() {
+    setSearchQuery("");
+    setSemanticResults(null);
+    syncSearchToUrl("");
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-            Bookmarks
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-4xl font-semibold tracking-tight">Stashbox</h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                Parcourez votre corpus sauvegardé avec son contexte d'enrichissement.
+    <main className="min-h-screen bg-background px-3 py-4 text-foreground sm:px-5 lg:px-8">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-5">
+        <header className="archive-panel overflow-hidden rounded-sm border-border">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="border-b border-border p-4 sm:p-5 lg:border-b-0 lg:border-r">
+              <p className="technical-label">Archive personnelle / Bookmarks</p>
+              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end">
+                <img
+                  src="/stashbox-logo.png"
+                  alt="Logo Stashbox"
+                  className="h-20 w-20 rounded-sm border border-border bg-background object-cover sm:h-24 sm:w-24 lg:h-28 lg:w-28"
+                />
+                <h1 className="font-display text-5xl font-semibold uppercase leading-[0.85] tracking-[-0.04em] sm:text-7xl lg:text-8xl">
+                  Stashbox
+                </h1>
+              </div>
+              <p className="mt-4 max-w-3xl font-mono text-sm leading-relaxed text-muted-foreground">
+                Console dense pour voir, filtrer, rechercher par sens et nettoyer votre mur de
+                fiches sauvegardées.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-slate-500 dark:text-slate-400">{countLabel}</p>
-              <ThemeToggle />
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2">
+              <div className="border-b border-r border-border p-3 sm:p-4">
+                <p className="technical-label">Inventaire</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-foreground">{countLabel}</p>
+              </div>
+              <div className="border-b border-border p-3 sm:border-r sm:p-4 lg:border-r-0">
+                <p className="technical-label">Mode</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-[var(--signal)]">
+                  {hasSearchQuery ? "Recherche" : "Browse"}
+                </p>
+              </div>
+              <div className="border-r border-border p-3 sm:p-4">
+                <p className="technical-label">Filtres</p>
+                <p className="mt-2 font-mono text-lg font-semibold">
+                  {hasActiveFilters ? "Actifs" : "Neutres"}
+                </p>
+              </div>
+              <div className="p-3 sm:p-4">
+                <p className="technical-label">Affichage</p>
+                <div className="mt-2">
+                  <ThemeToggle />
+                </div>
+              </div>
             </div>
           </div>
           {loadError ? (
             <p
               role="alert"
-              className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+              className="border-t border-amber-500/50 bg-amber-500/10 p-3 font-mono text-sm text-amber-700 dark:text-amber-200"
             >
               {loadError}
             </p>
           ) : null}
         </header>
+
         <form
           role="search"
-          aria-label="Recherche sémantique"
-          onSubmit={handleSemanticSearch}
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+          aria-label="Recherche"
+          onSubmit={handleUnifiedSearch}
+          className="archive-panel archive-grid-surface relative overflow-hidden rounded-sm border-border p-3 sm:p-4"
         >
-          <label
-            htmlFor="semantic-search-query"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-200"
-          >
-            Rechercher par sens
-          </label>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <input
-              id="semantic-search-query"
-              type="search"
-              value={semanticQuery}
-              onChange={(event) => setSemanticQuery(event.target.value)}
-              disabled={isSearchingBookmarks}
-              placeholder="Ex: articles sur l'architecture produit"
-              className={filterControlClassName}
-            />
-            <button
-              type="submit"
-              disabled={isSearchingBookmarks}
-              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-300"
-            >
-              {isSearchingBookmarks ? "Recherche..." : "Rechercher"}
-            </button>
-            {isSemanticSearchActive ? (
-              <button
-                type="button"
-                onClick={clearSemanticSearch}
-                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                Effacer la recherche sémantique
-              </button>
-            ) : null}
-          </div>
-        </form>
-        <section
-          aria-label="Filtres de Bookmarks"
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-        >
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]">
-            <label className="block space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-              <span>Filtrer par texte</span>
+          <div className="relative grid grid-cols-[minmax(0,1fr)_3rem] gap-2 sm:grid-cols-[minmax(0,1fr)_3.5rem] lg:grid-cols-[minmax(18rem,1fr)_16rem] lg:items-center">
+            <label className="block min-w-0">
+              <span className="sr-only">Rechercher</span>
               <input
+                ref={searchInputRef}
+                id="bookmark-search-query"
                 type="search"
-                value={filters.textFilter}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, textFilter: event.target.value }))
-                }
-                placeholder="Titre ou URL"
-                className={filterControlClassName}
+                value={searchQuery}
+                onChange={(event) => handleSearchQueryChange(event.target.value)}
+                disabled={isSearchingBookmarks}
+                placeholder="Rechercher par titre, URL ou sens..."
+                className={`${filterControlClassName} h-12 text-base sm:h-14`}
               />
             </label>
-            <label className="block space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-              <span>Filtrer par type</span>
-              <select
-                value={filters.typeFilter}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    typeFilter: event.target.value as Bookmark["type"] | "",
-                  }))
-                }
-                className={filterControlClassName}
-              >
-                <option value="">Tous les types</option>
-                {bookmarkTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {tags.length > 0 ? (
-            <fieldset className="mt-4 space-y-2">
-              <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                Filtrer par tags
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {tags.map(({ tag, count }) => (
-                  <label
-                    key={tag}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.selectedTags.includes(tag)}
-                      onChange={() => toggleTag(tag)}
-                      className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-950"
-                    />
-                    <span>
-                      {tag} ({count})
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          ) : null}
-          {hasActiveFilters ? (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-4 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            <Select
+              value={filters.typeFilter || allBookmarkTypesValue}
+              onValueChange={(value) =>
+                setFilters((current) => ({
+                  ...current,
+                  typeFilter: value === allBookmarkTypesValue ? "" : (value as Bookmark["type"]),
+                }))
+              }
             >
-              Effacer les filtres
-            </button>
-          ) : null}
-        </section>
-        {hasEmptySemanticResults ? (
-          <p className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-            Aucun résultat sémantique.
+              <SelectTrigger
+                aria-label="Filtrer par type"
+                title="Filtrer par type"
+                className="type-filter-trigger h-12 w-12 justify-center px-0 sm:h-14 sm:w-14 lg:w-full lg:justify-between lg:px-3"
+              >
+                <SlidersHorizontal
+                  aria-hidden="true"
+                  className={`h-4 w-4 lg:hidden ${
+                    hasActiveFilters ? "text-primary" : "text-foreground"
+                  }`}
+                />
+                <div className="hidden min-w-0 lg:block">
+                  <SelectValue>{selectedTypeLabel}</SelectValue>
+                </div>
+              </SelectTrigger>
+              <SelectContent align="end" className="min-w-52 border-primary/40 bg-popover/95">
+                <SelectItem value={allBookmarkTypesValue}>Tous les types</SelectItem>
+                {bookmarkTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </form>
+
+        {hasEmptySearchResults ? (
+          <p className="archive-panel rounded-sm border-border p-8 text-center font-mono text-sm text-muted-foreground">
+            Aucun résultat.
           </p>
         ) : (
           <BookmarkGrid
             bookmarks={displayedBookmarks}
             onSaveBookmark={onSaveBookmark}
             onDeleteBookmark={handleDeleteBookmark}
-            showAddBookmarkCard={!isSemanticSearchActive}
+            showAddBookmarkCard={!hasSearchQuery}
           />
         )}
-        {onLoadMoreBookmarks && canLoadMoreBookmarks && !isSemanticSearchActive ? (
+        {onLoadMoreBookmarks && canLoadMoreBookmarks && !hasSearchQuery ? (
           <div className="flex justify-center">
             <button
               type="button"
               onClick={handleLoadMoreBookmarks}
               disabled={isLoadingMoreBookmarks}
-              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-300"
+              className="rounded-sm border border-primary bg-primary px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoadingMoreBookmarks ? "Chargement..." : "Charger plus"}
             </button>
@@ -322,70 +320,54 @@ type BookmarkPageParams = {
 };
 
 type BookmarkFilters = {
-  selectedTags: string[];
-  textFilter: string;
   typeFilter: Bookmark["type"] | "";
 };
 
 function getInitialBookmarkFilters(): BookmarkFilters {
   if (typeof window === "undefined") {
-    return { selectedTags: [], textFilter: "", typeFilter: "" };
+    return { typeFilter: "" };
   }
 
   const params = new URLSearchParams(window.location.search);
   const typeFilter = parseBookmarkType(params.get("type"));
 
-  return {
-    selectedTags: parseTagsParam(params.get("tags")),
-    textFilter: params.get("q") ?? "",
-    typeFilter,
-  };
+  return { typeFilter };
 }
 
-function getInitialSemanticSearchQuery() {
+function getInitialSearchQuery() {
   if (typeof window === "undefined") return "";
 
-  return new URLSearchParams(window.location.search).get(semanticSearchParamName) ?? "";
+  const params = new URLSearchParams(window.location.search);
+  return params.get(searchParamName) ?? params.get(legacySemanticSearchParamName) ?? "";
 }
 
 function syncBookmarkFiltersToUrl(filters: BookmarkFilters) {
   if (typeof window === "undefined") return;
 
   const params = new URLSearchParams(window.location.search);
-  const textFilter = filters.textFilter.trim();
-  if (textFilter) {
-    params.set("q", textFilter);
-  } else {
-    params.delete("q");
-  }
-
   if (filters.typeFilter) {
     params.set("type", filters.typeFilter);
   } else {
     params.delete("type");
   }
-
-  if (filters.selectedTags.length > 0) {
-    params.set("tags", filters.selectedTags.join(","));
-  } else {
-    params.delete("tags");
-  }
+  params.delete("tags");
 
   const search = params.toString();
   const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
   window.history.replaceState(window.history.state, "", nextUrl);
 }
 
-function syncSemanticSearchToUrl(query: string) {
+function syncSearchToUrl(query: string) {
   if (typeof window === "undefined") return;
 
   const params = new URLSearchParams(window.location.search);
   const trimmedQuery = query.trim();
   if (trimmedQuery) {
-    params.set(semanticSearchParamName, trimmedQuery);
+    params.set(searchParamName, trimmedQuery);
   } else {
-    params.delete(semanticSearchParamName);
+    params.delete(searchParamName);
   }
+  params.delete(legacySemanticSearchParamName);
 
   const search = params.toString();
   const nextUrl = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
@@ -398,32 +380,20 @@ function parseBookmarkType(value: string | null): Bookmark["type"] | "" {
   return "";
 }
 
-function parseTagsParam(value: string | null) {
-  if (!value) return [];
-
-  return value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function filterBookmarks(bookmarks: Bookmark[], filters: BookmarkFilters) {
-  return filterBookmarksByText(bookmarks, filters.textFilter).filter((bookmark) => {
+function filterBookmarksByFacets(bookmarks: Bookmark[], filters: BookmarkFilters) {
+  return bookmarks.filter((bookmark) => {
     const matchesType = !filters.typeFilter || bookmark.type === filters.typeFilter;
-    const matchesTags =
-      filters.selectedTags.length === 0 ||
-      filters.selectedTags.some((tag) => bookmark.tags.includes(tag));
 
-    return matchesType && matchesTags;
+    return matchesType;
   });
 }
 
 function hasActiveBookmarkFilters(filters: BookmarkFilters) {
-  return Boolean(filters.textFilter || filters.typeFilter || filters.selectedTags.length > 0);
+  return Boolean(filters.typeFilter);
 }
 
-function formatSemanticResultCount(count: number) {
-  return count === 1 ? "1 résultat sémantique" : `${count} résultats sémantiques`;
+function formatSearchResultCount(count: number) {
+  return count === 1 ? "1 résultat" : `${count} résultats`;
 }
 
 function filterBookmarksByText(bookmarks: Bookmark[], textFilter: string) {
@@ -436,4 +406,26 @@ function filterBookmarksByText(bookmarks: Bookmark[], textFilter: string) {
       bookmark.url.toLocaleLowerCase().includes(query)
     );
   });
+}
+
+function mergeBookmarks(primaryBookmarks: Bookmark[], secondaryBookmarks: Bookmark[]) {
+  const seenIds = new Set<string>();
+  const mergedBookmarks: Bookmark[] = [];
+
+  for (const bookmark of [...primaryBookmarks, ...secondaryBookmarks]) {
+    if (seenIds.has(bookmark.id)) continue;
+
+    seenIds.add(bookmark.id);
+    mergedBookmarks.push(bookmark);
+  }
+
+  return mergedBookmarks;
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+
+  const tagName = target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
 }

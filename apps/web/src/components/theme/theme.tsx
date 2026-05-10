@@ -60,7 +60,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       type="button"
       variant="outline"
-      className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+      className="h-8 px-3 text-[0.68rem]"
     >
       {isDark ? "Clair" : "Sombre"}
     </Button>
