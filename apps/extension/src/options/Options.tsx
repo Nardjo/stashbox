@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
 import { StashboxClient } from "@stashbox/api-client";
 import type { Bookmark } from "@stashbox/shared";
+import { useEffect, useRef, useState } from "react";
+
 import { getOptions, saveOptions } from "../lib/options.js";
 
 /* ─── CSV helpers ─── */
@@ -116,6 +117,10 @@ function IconCheck({ className }: { className?: string }) {
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
     </svg>
   );
+}
+
+function LogoMark({ className }: { className?: string }) {
+  return <img className={className} src="icons/icon48.png" alt="" aria-hidden="true" />;
 }
 
 /* ─── Component ─── */
@@ -258,145 +263,174 @@ export function Options() {
   };
 
   return (
-    <div className="min-h-screen bg-vault-bg grain-overlay flex items-start justify-center pt-12 pb-12 px-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* ── Header ── */}
-        <div className="vault-card rounded-xl p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="font-display text-2xl font-semibold text-parchment-50 tracking-wide">
-              stashbox
-            </h1>
-            <p className="text-xs text-parchment-200 tracking-wide">Configuration de l'extension</p>
-          </div>
-
-          <div className="h-px bg-vault-border" />
-
-          {/* ── Settings ── */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-medium tracking-widest uppercase text-parchment-300">
-                URL de l'API
-              </label>
-              <input
-                type="url"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="https://stashbox.example.com"
-                required
-                className="input-vault w-full"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-medium tracking-widest uppercase text-parchment-300">
-                Clé API
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk_..."
-                required
-                className="input-vault w-full"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn-brass w-full flex items-center justify-center gap-2"
-            >
-              {saved ? (
-                <>
-                  <IconCheck className="w-4 h-4" />
-                  Enregistré
-                </>
-              ) : (
-                "Enregistrer"
-              )}
-            </button>
-          </form>
-
-          <div className="h-px bg-vault-border" />
-
-          <p className="text-[10px] text-parchment-300 text-center leading-relaxed">
-            La clé API est stockée localement dans le navigateur. Elle n'est jamais envoyée ailleurs
-            que vers votre instance stashbox.
-          </p>
-        </div>
-
-        {/* ── Import ── */}
-        <div className="vault-card rounded-xl p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brass-500/10 flex items-center justify-center">
-              <IconUpload className="w-4 h-4 text-brass-400" />
-            </div>
-            <div>
-              <h2 className="text-sm font-medium text-parchment-50">Importer</h2>
-              <p className="text-[10px] text-parchment-300">CSV au format stashbox</p>
-            </div>
-          </div>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv"
-            onChange={handleFileSelect}
-            disabled={importing}
-            className="hidden"
-          />
-
-          {importing ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-[10px] text-parchment-200">
-                <span>
-                  {importDone} / {importTotal}
-                </span>
-                <span>{importProgress}%</span>
+    <div className="archive-grid-surface grain-overlay min-h-screen bg-vault-bg px-4 py-6 text-parchment-50">
+      <div className="mx-auto w-full max-w-5xl space-y-4">
+        <header className="archive-panel overflow-hidden rounded-sm">
+          <div className="grid md:grid-cols-[minmax(0,1fr)_16rem]">
+            <div className="border-b border-vault-border p-5 md:border-b-0 md:border-r">
+              <p className="technical-label">Extension / Paramètres</p>
+              <div className="mt-3 flex items-end gap-4">
+                <LogoMark className="h-20 w-20 rounded-sm border border-vault-border bg-[#17130D] object-cover" />
+                <h1 className="font-display text-6xl font-semibold uppercase leading-[0.85] text-parchment-50">
+                  Stashbox
+                </h1>
               </div>
-              <div className="h-1 bg-vault-elevated rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brass-500 rounded-full transition-all duration-300"
-                  style={{ width: `${importProgress}%` }}
-                />
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="btn-ghost w-full flex items-center justify-center gap-2"
-            >
-              <IconUpload className="w-3.5 h-3.5" />
-              Choisir un fichier CSV
-            </button>
-          )}
-
-          {importError && <p className="text-[10px] text-brick-500 text-center">{importError}</p>}
-        </div>
-
-        {/* ── Export ── */}
-        <div className="vault-card rounded-xl p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brass-500/10 flex items-center justify-center">
-              <IconDownload className="w-4 h-4 text-brass-400" />
-            </div>
-            <div>
-              <h2 className="text-sm font-medium text-parchment-50">Exporter</h2>
-              <p className="text-[10px] text-parchment-300">
-                {exporting
-                  ? `Récupération de ${exportCount} bookmarks...`
-                  : "Télécharger tous les bookmarks en CSV"}
+              <p className="mt-4 max-w-2xl font-mono text-sm leading-relaxed text-parchment-200">
+                Configuration locale, import et export CSV pour l'extension navigateur.
               </p>
             </div>
+            <div className="grid grid-cols-2 md:grid-cols-1">
+              <div className="border-r border-vault-border p-4 md:border-b md:border-r-0">
+                <p className="technical-label">API</p>
+                <p className="mt-2 font-mono text-sm font-semibold text-parchment-50">
+                  {apiUrl ? "Configurée" : "À renseigner"}
+                </p>
+              </div>
+              <div className="p-4">
+                <p className="technical-label">Stockage</p>
+                <p className="mt-2 font-mono text-sm font-semibold text-sage-600">Local</p>
+              </div>
+            </div>
           </div>
+        </header>
 
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="btn-ghost w-full flex items-center justify-center gap-2"
-          >
-            <IconDownload className="w-3.5 h-3.5" />
-            {exporting ? "Export en cours..." : "Exporter en CSV"}
-          </button>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <section className="archive-panel rounded-sm p-5">
+            <p className="technical-label">Connexion</p>
+            <h2 className="mt-2 font-display text-3xl font-semibold uppercase leading-none">
+              Accès API
+            </h2>
+
+            <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+              <div className="space-y-1.5">
+                <label className="technical-label block">URL de l'API</label>
+                <input
+                  type="url"
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  placeholder="https://stashbox.example.com"
+                  required
+                  className="input-vault w-full"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="technical-label block">Clé API</label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk_..."
+                  required
+                  className="input-vault w-full"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn-brass flex w-full items-center justify-center gap-2"
+              >
+                {saved ? (
+                  <>
+                    <IconCheck className="h-4 w-4" />
+                    Enregistré
+                  </>
+                ) : (
+                  "Enregistrer"
+                )}
+              </button>
+            </form>
+
+            <p className="mt-5 border-t border-vault-border pt-4 font-mono text-xs leading-relaxed text-parchment-200">
+              La clé API reste stockée localement dans le navigateur et n'est envoyée que vers votre
+              instance Stashbox.
+            </p>
+          </section>
+
+          <div className="grid gap-4">
+            <section className="archive-panel rounded-sm p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-vault-border bg-vault-elevated/70">
+                  <IconUpload className="h-5 w-5 text-brass-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="technical-label">Import</p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold uppercase leading-none">
+                    CSV
+                  </h2>
+                  <p className="mt-1 font-mono text-xs text-parchment-200">
+                    Format export Stashbox.
+                  </p>
+                </div>
+              </div>
+
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                disabled={importing}
+                className="hidden"
+              />
+
+              {importing ? (
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between font-mono text-xs text-parchment-200">
+                    <span>
+                      {importDone} / {importTotal}
+                    </span>
+                    <span>{importProgress}%</span>
+                  </div>
+                  <div className="h-1 overflow-hidden rounded-sm bg-vault-elevated">
+                    <div
+                      className="h-full rounded-sm bg-brass-500 transition-all duration-300"
+                      style={{ width: `${importProgress}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="btn-ghost mt-4 flex w-full items-center justify-center gap-2"
+                >
+                  <IconUpload className="h-3.5 w-3.5" />
+                  Choisir CSV
+                </button>
+              )}
+
+              {importError ? (
+                <p className="mt-3 font-mono text-xs text-brick-600">{importError}</p>
+              ) : null}
+            </section>
+
+            <section className="archive-panel rounded-sm p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-vault-border bg-vault-elevated/70">
+                  <IconDownload className="h-5 w-5 text-brass-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="technical-label">Export</p>
+                  <h2 className="mt-1 font-display text-2xl font-semibold uppercase leading-none">
+                    Archive CSV
+                  </h2>
+                  <p className="mt-1 font-mono text-xs text-parchment-200">
+                    {exporting
+                      ? `Récupération de ${exportCount} bookmarks...`
+                      : "Tous les bookmarks sauvegardés."}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="btn-ghost mt-4 flex w-full items-center justify-center gap-2"
+              >
+                <IconDownload className="h-3.5 w-3.5" />
+                {exporting ? "Export..." : "Exporter CSV"}
+              </button>
+            </section>
+          </div>
         </div>
       </div>
     </div>

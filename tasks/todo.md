@@ -1,3 +1,48 @@
+# Extension Web Design Alignment
+
+## Plan
+
+- [x] Mirror the web app's control-room visual system in the extension stylesheet.
+- [x] Refresh the popup header, states, controls, and footer without changing save behavior.
+- [x] Refresh the options page panels for settings, import, and export.
+- [x] Simplify popup chrome by removing the redundant header label and duplicate result logo.
+- [x] Rebuild, test, typecheck, lint, and visually inspect popup/options.
+
+## Scope
+
+- App: `apps/extension`.
+- Keep bookmark save, polling, settings, import, and export behavior unchanged.
+
+## Review
+
+- Popup and options now use the web app's light industrial control-room style: IBM Plex typography, grid surface, square panels, technical labels, accent controls, and the new logo.
+- Popup header now shows only the Stashbox mark and title; the result card no longer repeats the logo.
+- Popup success and settings states were visually verified with a mocked extension runtime.
+- Options page was visually verified from the built extension output.
+- Validation passed: extension build, tests, typecheck, lint, and `git diff --check`.
+
+---
+
+# Extension Branding Rename
+
+## Plan
+
+- [x] Replace the extension manifest name and description with Stashbox branding.
+- [x] Replace popup and options document titles with Stashbox branding.
+- [x] Rebuild and verify the generated extension manifest.
+- [x] Run extension checks.
+
+## Scope
+
+- App: `apps/extension`.
+
+## Review
+
+- Extension install name, popup title, and options title now use Stashbox.
+- Generated extension manifest is verified after rebuild.
+
+---
+
 # Search Button Removal
 
 ## Plan

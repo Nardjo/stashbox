@@ -1,5 +1,7 @@
 # Lessons
 
+- In compact extension popups, avoid repeating the brand mark inside status cards when the header already carries the logo.
+- When renaming product branding, search extension manifests and HTML entrypoint titles, not only React UI text.
 - When exposing `pending` Bookmarks in the UI, verify the full enrichment path: API insert, Redis job, running worker, provider config, and final status transition. A visible `pending` state can reveal a missing worker, not a UI bug.
 - For custom-styled native selects, hide the browser arrow with `appearance-none`, reserve right padding, and place an explicit chevron inside the control instead of relying on the native arrow position.
 - When thumbnails contain their own letterbox bands, crop symmetrically inside the image mask; one-sided translation can fix the top while exposing the bottom.

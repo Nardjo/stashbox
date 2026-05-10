@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { getOptions, saveOptions } from "../src/lib/options.js";
 
 const storageMock: Record<string, unknown> = {};

@@ -5,34 +5,34 @@ export default {
     extend: {
       colors: {
         vault: {
-          bg: "#0F0E0C",
-          surface: "#1A1917",
-          elevated: "#242320",
-          border: "#2E2C28",
+          bg: "#F5F0E8",
+          surface: "#FBF8EF",
+          elevated: "#E8E2D6",
+          border: "#A9A297",
         },
         parchment: {
-          50: "#F5F0E8",
-          100: "#E8E2D6",
-          200: "#A39E94",
-          300: "#6B665E",
+          50: "#17130D",
+          100: "#29241C",
+          200: "#5C554B",
+          300: "#8B8375",
         },
         brass: {
-          400: "#C9A96E",
-          500: "#D4A853",
-          600: "#B8933F",
+          400: "#D89400",
+          500: "#F0AA16",
+          600: "#B97800",
         },
         sage: {
-          500: "#5A8F6E",
-          600: "#4A7A5C",
+          500: "#1B9A55",
+          600: "#147741",
         },
         brick: {
-          500: "#B54A4A",
-          600: "#963D3D",
+          500: "#C0382B",
+          600: "#8F241D",
         },
       },
       fontFamily: {
-        display: ['"Playfair Display"', "serif"],
-        mono: ['"JetBrains Mono"', "monospace"],
+        display: ['"IBM Plex Sans Condensed"', '"Barlow Condensed"', "sans-serif"],
+        mono: ['"IBM Plex Mono"', '"JetBrains Mono"', "monospace"],
       },
       animation: {
         "seal-stamp": "sealStamp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
