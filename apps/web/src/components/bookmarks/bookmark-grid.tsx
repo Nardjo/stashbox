@@ -1,11 +1,11 @@
 import type { Bookmark } from "@stashbox/shared";
 
-import { AddBookmarkCard } from "./add-bookmark-card.tsx";
+import { AddBookmarkCard, type SaveBookmarkResult } from "./add-bookmark-card.tsx";
 import { BookmarkCard } from "./bookmark-card.tsx";
 
 type BookmarkGridProps = {
   bookmarks: Bookmark[];
-  onSaveBookmark: (url: string) => Promise<void>;
+  onSaveBookmark: (url: string) => Promise<SaveBookmarkResult | void>;
   onDeleteBookmark: (id: string) => Promise<void>;
   showAddBookmarkCard?: boolean;
 };
@@ -20,7 +20,7 @@ export function BookmarkGrid({
     <div
       role="list"
       aria-label="Bookmarks"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
     >
       {showAddBookmarkCard ? (
         <div role="listitem">

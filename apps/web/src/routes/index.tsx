@@ -2,7 +2,7 @@ import type { Bookmark } from "@stashbox/shared";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
 import { BookmarkBrowsePage } from "~/components/bookmarks/bookmark-browse-page.tsx";
-import type { InitialBrowseData } from "~/server/stashbox.ts";
+import type { AddBookmarkResult, InitialBrowseData } from "~/server/stashbox.ts";
 import {
   addBookmark,
   deleteBookmark,
@@ -60,8 +60,9 @@ function useSaveBookmark() {
   const router = useRouter();
 
   return async (url: string) => {
-    await addBookmark({ data: { url } });
+    const result = (await addBookmark({ data: { url } })) as AddBookmarkResult;
     await router.invalidate();
+    return result;
   };
 }
 

@@ -1,15 +1,34 @@
 import { type FormEvent, useId, useState } from "react";
 
+import { Alert, AlertDescription } from "~/components/ui/alert.tsx";
 import { Button } from "~/components/ui/button.tsx";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card.tsx";
+import { Input } from "~/components/ui/input.tsx";
+
+export type SaveBookmarkResult = {
+  alreadySaved?: boolean;
+};
 
 type AddBookmarkCardProps = {
-  onSaveBookmark: (url: string) => Promise<void>;
+  onSaveBookmark: (url: string) => Promise<SaveBookmarkResult | void>;
+};
+
+type SaveNotice = {
+  message: string;
+  variant: "default" | "destructive";
 };
 
 export function AddBookmarkCard({ onSaveBookmark }: AddBookmarkCardProps) {
   const errorId = useId();
   const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | undefined>();
+  const [notice, setNotice] = useState<SaveNotice | undefined>();
   const [isSaving, setIsSaving] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -17,65 +36,78 @@ export function AddBookmarkCard({ onSaveBookmark }: AddBookmarkCardProps) {
 
     const nextUrl = url.trim();
     if (!isHttpUrl(nextUrl)) {
-      setError("Saisissez une URL valide.");
+      setNotice({ message: "Saisissez une URL valide.", variant: "destructive" });
       return;
     }
 
-    setError(undefined);
+    setNotice(undefined);
     setIsSaving(true);
     try {
-      await onSaveBookmark(nextUrl);
-      setUrl("");
-    } catch {
-      setError("Impossible de sauvegarder le Bookmark.");
+      const result = await onSaveBookmark(nextUrl);
+      if (result?.alreadySaved) {
+        setNotice({ message: "Ce Bookmark est déjà sauvegardé.", variant: "default" });
+      } else {
+        setUrl("");
+      }
+    } catch (error) {
+      if (isAlreadySavedError(error)) {
+        setNotice({ message: "Ce Bookmark est déjà sauvegardé.", variant: "default" });
+      } else {
+        setNotice({
+          message: "Impossible de sauvegarder le Bookmark.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <form
-      aria-label="Sauvegarder un Bookmark"
-      className="flex min-h-full flex-col justify-between rounded-2xl border border-dashed border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-      noValidate
-      onSubmit={handleSubmit}
-    >
-      <div className="space-y-3">
+    <Card className="archive-grid-surface min-h-full border-dashed border-accent/70 bg-card/70 transition hover:border-accent hover:bg-accent/5">
+      <form
+        aria-label="Sauvegarder un Bookmark"
+        className="flex min-h-full flex-col justify-between"
+        noValidate
+        onSubmit={handleSubmit}
+      >
         <div>
-          <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
-            Sauvegarder un Bookmark
-          </p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Collez une URL pour lancer l'enrichissement.
-          </p>
+          <CardHeader className="p-4 pb-3">
+            <p className="technical-label">Capture slot</p>
+            <CardTitle className="text-lg">Sauvegarder un Bookmark</CardTitle>
+            <CardDescription>Collez une URL pour lancer l'enrichissement.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 pt-0">
+            <label className="block space-y-2">
+              <span className="technical-label">URL du Bookmark</span>
+              <Input
+                aria-describedby={notice ? errorId : undefined}
+                aria-invalid={notice?.variant === "destructive" ? true : undefined}
+                disabled={isSaving}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://example.com/article"
+                type="url"
+                value={url}
+              />
+            </label>
+            {notice ? (
+              <Alert id={errorId} variant={notice.variant}>
+                <AlertDescription>{notice.message}</AlertDescription>
+              </Alert>
+            ) : null}
+          </CardContent>
         </div>
-        <label className="block space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-          <span>URL du Bookmark</span>
-          <input
-            aria-describedby={error ? errorId : undefined}
-            aria-invalid={error ? true : undefined}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:border-slate-200 dark:focus:ring-slate-200/10"
+        <CardFooter className="p-4 pt-0">
+          <Button
+            className="w-full border-accent bg-accent text-accent-foreground hover:bg-accent/90"
             disabled={isSaving}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://example.com/article"
-            type="url"
-            value={url}
-          />
-        </label>
-        {error ? (
-          <p
-            id={errorId}
-            role="alert"
-            className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200"
+            type="submit"
           >
-            {error}
-          </p>
-        ) : null}
-      </div>
-      <Button className="mt-4 w-full" disabled={isSaving} type="submit">
-        {isSaving ? "Sauvegarde..." : "Sauvegarder"}
-      </Button>
-    </form>
+            {isSaving ? "Sauvegarde..." : "Sauvegarder"}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
   );
 }
 
@@ -86,4 +118,11 @@ function isHttpUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+function isAlreadySavedError(error: unknown) {
+  if ((error as { status?: unknown })?.status === 409) return true;
+  if (!(error instanceof Error)) return false;
+
+  return error.message.includes("409") || error.message.toLowerCase().includes("conflict");
 }

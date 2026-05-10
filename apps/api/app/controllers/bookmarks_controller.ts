@@ -50,7 +50,7 @@ export default class BookmarksController {
     const offset = q.offset ?? 0
 
     const params: unknown[] = []
-    const wheres = [`enrichment_status IN ('done', 'degraded')`]
+    const wheres = [`enrichment_status IN ('pending', 'enriching', 'done', 'degraded')`]
 
     if (q.type) {
       params.push(q.type)

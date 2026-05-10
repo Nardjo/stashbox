@@ -44,7 +44,7 @@ describe("BookmarkBrowsePage", () => {
     expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
   });
 
-  it("shows a distinct semantic search input", () => {
+  it("shows one unified search input", () => {
     renderPage(
       <BookmarkBrowsePage
         bookmarks={[]}
@@ -53,16 +53,20 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    expect(screen.getByRole("search", { name: "Recherche sémantique" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Rechercher par sens")).toBeInTheDocument();
-    expect(screen.getByLabelText("Filtrer par texte")).toBeInTheDocument();
+    expect(screen.getByRole("search", { name: "Recherche" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Rechercher")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Filtrer par texte")).not.toBeInTheDocument();
   });
 
-  it("submits a semantic query and replaces the browse grid with semantic results", async () => {
+  it("searches exact title or URL matches and merges semantic results", async () => {
     const searchBookmarks = vi.fn().mockResolvedValue([
       createBookmark({
         id: "00000000-0000-4000-8000-000000000003",
         title: "Semantic architecture",
+      }),
+      createBookmark({
+        id: "00000000-0000-4000-8000-000000000001",
+        title: "Readable systems",
       }),
     ]);
 
@@ -80,18 +84,21 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Rechercher par sens"), {
-      target: { value: "architecture produit" },
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
+      target: { value: "readable" },
     });
-    fireEvent.submit(screen.getByRole("search", { name: "Recherche sémantique" }));
+    expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument();
+    expect(window.location.search).toContain("q=readable");
 
-    await waitFor(() => expect(searchBookmarks).toHaveBeenCalledWith("architecture produit"));
-    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    fireEvent.submit(screen.getByRole("search", { name: "Recherche" }));
+
+    await waitFor(() => expect(searchBookmarks).toHaveBeenCalledWith("readable"));
+    expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Semantic architecture" })).toBeInTheDocument();
-    expect(screen.getByText("1 résultat sémantique")).toBeInTheDocument();
+    expect(screen.getByText("2 résultats")).toBeInTheDocument();
   });
 
-  it("shows a loading state while semantic search is in flight", async () => {
+  it("shows a loading state while unified semantic search is in flight", async () => {
     let finishSearch!: (bookmarks: Bookmark[]) => void;
     const searchBookmarks = vi.fn(
       () =>
@@ -109,10 +116,10 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Rechercher par sens"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "architecture produit" },
     });
-    fireEvent.submit(screen.getByRole("search", { name: "Recherche sémantique" }));
+    fireEvent.submit(screen.getByRole("search", { name: "Recherche" }));
 
     const loadingButton = await screen.findByRole("button", { name: "Recherche..." });
     expect(loadingButton).toBeDisabled();
@@ -123,7 +130,7 @@ describe("BookmarkBrowsePage", () => {
     );
   });
 
-  it("shows an empty state when semantic search returns no result", async () => {
+  it("shows an empty state when unified search has no local or semantic result", async () => {
     const searchBookmarks = vi.fn().mockResolvedValue([]);
 
     renderPage(
@@ -135,17 +142,17 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Rechercher par sens"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "architecture produit" },
     });
-    fireEvent.submit(screen.getByRole("search", { name: "Recherche sémantique" }));
+    fireEvent.submit(screen.getByRole("search", { name: "Recherche" }));
 
-    expect(await screen.findByText("Aucun résultat sémantique.")).toBeInTheDocument();
-    expect(screen.getByText("0 résultats sémantiques")).toBeInTheDocument();
+    expect(await screen.findByText("Aucun résultat.")).toBeInTheDocument();
+    expect(screen.getByText("0 résultats")).toBeInTheDocument();
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
   });
 
-  it("clears semantic search and restores the browse grid", async () => {
+  it("clears unified search and restores the browse grid", async () => {
     const searchBookmarks = vi.fn().mockResolvedValue([
       createBookmark({
         id: "00000000-0000-4000-8000-000000000003",
@@ -167,25 +174,25 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Rechercher par sens"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "architecture produit" },
     });
-    fireEvent.submit(screen.getByRole("search", { name: "Recherche sémantique" }));
+    fireEvent.submit(screen.getByRole("search", { name: "Recherche" }));
     expect(
       await screen.findByRole("article", { name: "Semantic architecture" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Effacer la recherche sémantique" }));
+    fireEvent.click(screen.getByRole("button", { name: "Effacer la recherche" }));
 
     expect(
       screen.queryByRole("article", { name: "Semantic architecture" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Rechercher par sens")).toHaveValue("");
+    expect(screen.getByLabelText("Rechercher")).toHaveValue("");
     expect(screen.getByText("1 Bookmark")).toBeInTheDocument();
   });
 
-  it("syncs semantic search to the URL and restores it on load", async () => {
+  it("syncs unified search to the URL and restores it on load", async () => {
     const searchBookmarks = vi.fn().mockResolvedValue([
       createBookmark({
         id: "00000000-0000-4000-8000-000000000003",
@@ -202,14 +209,14 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Rechercher par sens"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "architecture produit" },
     });
-    fireEvent.submit(screen.getByRole("search", { name: "Recherche sémantique" }));
+    fireEvent.submit(screen.getByRole("search", { name: "Recherche" }));
 
-    await waitFor(() => expect(window.location.search).toContain("semantic=architecture+produit"));
+    await waitFor(() => expect(window.location.search).toContain("q=architecture+produit"));
     unmount();
-    window.history.replaceState(null, "", "/?semantic=architecture%20produit");
+    window.history.replaceState(null, "", "/?q=architecture%20produit");
 
     const restoredSearchBookmarks = vi.fn().mockResolvedValue([
       createBookmark({
@@ -229,7 +236,7 @@ describe("BookmarkBrowsePage", () => {
     await waitFor(() =>
       expect(restoredSearchBookmarks).toHaveBeenCalledWith("architecture produit"),
     );
-    expect(screen.getByLabelText("Rechercher par sens")).toHaveValue("architecture produit");
+    expect(screen.getByLabelText("Rechercher")).toHaveValue("architecture produit");
     expect(screen.getByRole("article", { name: "Restored semantic result" })).toBeInTheDocument();
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
   });
@@ -374,16 +381,16 @@ describe("BookmarkBrowsePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Charger plus" }));
     expect(await screen.findByRole("article", { name: "Pagination systems" })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "pagination" },
     });
 
     expect(screen.queryByRole("article", { name: "Pagination systems" })).not.toBeInTheDocument();
-    expect(screen.getByText("0 Bookmarks")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Charger plus" })).toBeInTheDocument();
+    expect(screen.getByText("0 résultats")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Charger plus" })).not.toBeInTheDocument();
   });
 
-  it("filters Bookmarks by title or URL text", () => {
+  it("searches Bookmarks by title or URL text from the unified field", () => {
     renderPage(
       <BookmarkBrowsePage
         bookmarks={[
@@ -403,13 +410,13 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "docs.example" },
     });
 
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Vue patterns" })).toBeInTheDocument();
-    expect(screen.getByText("1 Bookmark")).toBeInTheDocument();
+    expect(screen.getByText("1 résultat")).toBeInTheDocument();
   });
 
   it("filters Bookmarks by selected type", () => {
@@ -480,7 +487,7 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "nuxt" },
     });
     fireEvent.change(screen.getByLabelText("Filtrer par type"), {
@@ -493,7 +500,7 @@ describe("BookmarkBrowsePage", () => {
     expect(screen.getByRole("article", { name: "Nuxt patterns" })).toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
     expect(screen.queryByRole("article", { name: "Nuxt design" })).not.toBeInTheDocument();
-    expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
+    expect(screen.getByText("2 résultats")).toBeInTheDocument();
   });
 
   it("syncs active filters to the URL and clears them from the grid", () => {
@@ -519,7 +526,7 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Filtrer par texte"), {
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "nuxt" },
     });
     fireEvent.change(screen.getByLabelText("Filtrer par type"), {
@@ -536,13 +543,13 @@ describe("BookmarkBrowsePage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Effacer les filtres" }));
 
-    expect(window.location.search).toBe("");
-    expect(screen.getByLabelText("Filtrer par texte")).toHaveValue("");
+    expect(window.location.search).toBe("?q=nuxt");
+    expect(screen.getByLabelText("Rechercher")).toHaveValue("nuxt");
     expect(screen.getByLabelText("Filtrer par type")).toHaveValue("");
     expect(screen.getByLabelText("architecture (2)")).not.toBeChecked();
-    expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
-    expect(screen.getByText("2 Bookmarks")).toBeInTheDocument();
+    expect(screen.getByText("1 résultat")).toBeInTheDocument();
   });
 
   it("initializes active filters from the URL query string", () => {
@@ -570,7 +577,7 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Filtrer par texte")).toHaveValue("nuxt");
+    expect(screen.getByLabelText("Rechercher")).toHaveValue("nuxt");
     expect(screen.getByLabelText("Filtrer par type")).toHaveValue("youtube");
     expect(screen.getByLabelText("architecture (2)")).toBeChecked();
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
@@ -696,6 +703,29 @@ describe("BookmarkBrowsePage", () => {
     expect(within(addCard).getByRole("alert")).toHaveTextContent("Saisissez une URL valide.");
     expect(input).toHaveAccessibleDescription("Saisissez une URL valide.");
     expect(saveBookmark).not.toHaveBeenCalled();
+  });
+
+  it("explains when the Bookmark is already saved", async () => {
+    const saveBookmark = vi.fn().mockResolvedValue({ alreadySaved: true });
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={saveBookmark}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    const addCard = screen.getByRole("form", { name: "Sauvegarder un Bookmark" });
+    const input = within(addCard).getByLabelText("URL du Bookmark");
+
+    fireEvent.change(input, { target: { value: "https://example.com/new" } });
+    fireEvent.click(within(addCard).getByRole("button", { name: "Sauvegarder" }));
+
+    expect(await within(addCard).findByRole("alert")).toHaveTextContent(
+      "Ce Bookmark est déjà sauvegardé.",
+    );
+    expect(input).toHaveValue("https://example.com/new");
+    expect(input).not.toHaveAttribute("aria-invalid");
   });
 
   it("disables the Save controls while the Bookmark is being saved", async () => {

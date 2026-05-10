@@ -27,9 +27,9 @@ describe("home route", () => {
       return Response.json({ results: bookmarks });
     });
 
-    const { Route } = await import("~/routes/index.tsx");
+    const { loadInitialBrowseDataFromApi } = await import("~/server/stashbox.ts");
 
-    await expect(Route.options.loader?.({} as never)).resolves.toEqual({
+    await expect(loadInitialBrowseDataFromApi()).resolves.toEqual({
       bookmarkPageSize: 48,
       bookmarks,
       hasMoreBookmarks: true,

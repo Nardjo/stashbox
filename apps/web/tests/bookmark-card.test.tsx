@@ -53,6 +53,19 @@ describe("BookmarkCard", () => {
     expect(screen.getByRole("status", { name: "Enrichissement en cours" })).toBeInTheDocument();
   });
 
+  it("uses the domain as title while enrichment has not populated one", () => {
+    render(
+      <BookmarkCard
+        bookmark={createBookmark({ enrichmentStatus: "pending", ogImage: null, title: "" })}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    expect(screen.getByRole("article", { name: "example.com" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "example.com" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Supprimer example.com" })).toBeInTheDocument();
+  });
+
   it("shows a loading state while enrichment is running", () => {
     render(
       <BookmarkCard
