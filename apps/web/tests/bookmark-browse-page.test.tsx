@@ -55,7 +55,43 @@ describe("BookmarkBrowsePage", () => {
 
     expect(screen.getByRole("search", { name: "Recherche" })).toBeInTheDocument();
     expect(screen.getByLabelText("Rechercher")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Chercher" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Filtrer par type" })).toHaveClass(
+      "type-filter-trigger",
+      "w-12",
+      "lg:w-full",
+    );
     expect(screen.queryByLabelText("Filtrer par texte")).not.toBeInTheDocument();
+  });
+
+  it("focuses the unified search input with Cmd+K", () => {
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+
+    expect(screen.getByLabelText("Rechercher")).toHaveFocus();
+  });
+
+  it("does not steal Cmd+K while typing in another editable field", () => {
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    const saveInput = screen.getByLabelText("URL du Bookmark");
+    saveInput.focus();
+    fireEvent.keyDown(saveInput, { key: "k", metaKey: true });
+
+    expect(saveInput).toHaveFocus();
   });
 
   it("searches exact title or URL matches and merges semantic results", async () => {
@@ -121,13 +157,10 @@ describe("BookmarkBrowsePage", () => {
     });
     fireEvent.submit(screen.getByRole("search", { name: "Recherche" }));
 
-    const loadingButton = await screen.findByRole("button", { name: "Recherche..." });
-    expect(loadingButton).toBeDisabled();
+    await waitFor(() => expect(screen.getByLabelText("Rechercher")).toBeDisabled());
 
     finishSearch([]);
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Recherche..." })).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByLabelText("Rechercher")).not.toBeDisabled());
   });
 
   it("shows an empty state when unified search has no local or semantic result", async () => {
@@ -182,7 +215,9 @@ describe("BookmarkBrowsePage", () => {
       await screen.findByRole("article", { name: "Semantic architecture" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Effacer la recherche" }));
+    fireEvent.change(screen.getByLabelText("Rechercher"), {
+      target: { value: "" },
+    });
 
     expect(
       screen.queryByRole("article", { name: "Semantic architecture" }),
@@ -419,7 +454,7 @@ describe("BookmarkBrowsePage", () => {
     expect(screen.getByText("1 résultat")).toBeInTheDocument();
   });
 
-  it("filters Bookmarks by selected type", () => {
+  it("filters Bookmarks by selected type", async () => {
     renderPage(
       <BookmarkBrowsePage
         bookmarks={[
@@ -439,71 +474,27 @@ describe("BookmarkBrowsePage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Filtrer par type"), {
-      target: { value: "youtube" },
-    });
+    await selectBookmarkType("youtube");
 
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Nuxt walkthrough" })).toBeInTheDocument();
     expect(screen.getByText("1 Bookmark")).toBeInTheDocument();
   });
 
-  it("filters Bookmarks by selected Tags with OR semantics and combines other filters with AND", () => {
+  it("does not render tag selection controls in the search block", () => {
     renderPage(
       <BookmarkBrowsePage
-        bookmarks={[
-          createBookmark({
-            id: "00000000-0000-4000-8000-000000000001",
-            title: "Readable systems",
-            type: "article",
-            tags: ["architecture"],
-          }),
-          createBookmark({
-            id: "00000000-0000-4000-8000-000000000002",
-            title: "Nuxt patterns",
-            type: "youtube",
-            tags: ["vue"],
-          }),
-          createBookmark({
-            id: "00000000-0000-4000-8000-000000000003",
-            title: "Nuxt architecture",
-            type: "youtube",
-            tags: ["architecture"],
-          }),
-          createBookmark({
-            id: "00000000-0000-4000-8000-000000000004",
-            title: "Nuxt design",
-            type: "youtube",
-            tags: ["design"],
-          }),
-        ]}
-        tags={[
-          { tag: "architecture", count: 2 },
-          { tag: "vue", count: 1 },
-          { tag: "design", count: 1 },
-        ]}
+        bookmarks={[createBookmark({ tags: ["architecture"] })]}
         onSaveBookmark={async () => {}}
         onDeleteBookmark={async () => {}}
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Rechercher"), {
-      target: { value: "nuxt" },
-    });
-    fireEvent.change(screen.getByLabelText("Filtrer par type"), {
-      target: { value: "youtube" },
-    });
-    fireEvent.click(screen.getByLabelText("architecture (2)"));
-    fireEvent.click(screen.getByLabelText("vue (1)"));
-
-    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "Nuxt patterns" })).toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
-    expect(screen.queryByRole("article", { name: "Nuxt design" })).not.toBeInTheDocument();
-    expect(screen.getByText("2 résultats")).toBeInTheDocument();
+    expect(screen.queryByText("Tous les tags")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("architecture (1)")).not.toBeInTheDocument();
   });
 
-  it("syncs active filters to the URL and clears them from the grid", () => {
+  it("syncs active type filters to the URL", async () => {
     renderPage(
       <BookmarkBrowsePage
         bookmarks={[
@@ -520,7 +511,6 @@ describe("BookmarkBrowsePage", () => {
             tags: ["architecture"],
           }),
         ]}
-        tags={[{ tag: "architecture", count: 2 }]}
         onSaveBookmark={async () => {}}
         onDeleteBookmark={async () => {}}
       />,
@@ -529,30 +519,18 @@ describe("BookmarkBrowsePage", () => {
     fireEvent.change(screen.getByLabelText("Rechercher"), {
       target: { value: "nuxt" },
     });
-    fireEvent.change(screen.getByLabelText("Filtrer par type"), {
-      target: { value: "youtube" },
-    });
-    fireEvent.click(screen.getByLabelText("architecture (2)"));
+    await selectBookmarkType("youtube");
 
     const activeParams = new URLSearchParams(window.location.search);
     expect(activeParams.get("q")).toBe("nuxt");
     expect(activeParams.get("type")).toBe("youtube");
-    expect(activeParams.get("tags")).toBe("architecture");
-    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Effacer les filtres" }));
-
-    expect(window.location.search).toBe("?q=nuxt");
-    expect(screen.getByLabelText("Rechercher")).toHaveValue("nuxt");
-    expect(screen.getByLabelText("Filtrer par type")).toHaveValue("");
-    expect(screen.getByLabelText("architecture (2)")).not.toBeChecked();
+    expect(activeParams.get("tags")).toBeNull();
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
     expect(screen.getByText("1 résultat")).toBeInTheDocument();
   });
 
-  it("initializes active filters from the URL query string", () => {
+  it("initializes the type filter from the URL query string and drops legacy tag filters", async () => {
     window.history.replaceState(null, "", "/?q=nuxt&type=youtube&tags=architecture");
 
     renderPage(
@@ -571,15 +549,18 @@ describe("BookmarkBrowsePage", () => {
             tags: ["architecture"],
           }),
         ]}
-        tags={[{ tag: "architecture", count: 2 }]}
         onSaveBookmark={async () => {}}
         onDeleteBookmark={async () => {}}
       />,
     );
 
     expect(screen.getByLabelText("Rechercher")).toHaveValue("nuxt");
-    expect(screen.getByLabelText("Filtrer par type")).toHaveValue("youtube");
-    expect(screen.getByLabelText("architecture (2)")).toBeChecked();
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Filtrer par type" })).toHaveTextContent(
+        "youtube",
+      ),
+    );
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("tags")).toBeNull());
     expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Nuxt architecture" })).toBeInTheDocument();
   });
@@ -875,6 +856,24 @@ describe("BookmarkBrowsePage", () => {
 
 function renderPage(page: ReactElement) {
   return render(<ThemeProvider>{page}</ThemeProvider>);
+}
+
+async function selectBookmarkType(type: string) {
+  installScrollIntoViewPolyfill();
+  const trigger = screen.getByRole("combobox", { name: "Filtrer par type" });
+
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: type }));
+}
+
+function installScrollIntoViewPolyfill() {
+  if (!HTMLElement.prototype.scrollIntoView) {
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: () => {},
+    });
+  }
 }
 
 function createBookmark(overrides: Partial<Bookmark> = {}): Bookmark {

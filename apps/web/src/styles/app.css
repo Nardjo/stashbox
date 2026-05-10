@@ -131,4 +131,23 @@
   .technical-label {
     @apply font-mono text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground;
   }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .type-filter-trigger > svg:last-child {
+    display: none;
+  }
+
+  @media (width >= 64rem) {
+    .type-filter-trigger > svg:last-child {
+      display: block;
+    }
+  }
 }

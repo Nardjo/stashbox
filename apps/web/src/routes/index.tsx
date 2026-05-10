@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { bookmarkPageSize, bookmarks, hasMoreBookmarks, tags } =
+  const { bookmarkPageSize, bookmarks, hasMoreBookmarks } =
     Route.useLoaderData() as InitialBrowseData;
   const saveBookmark = useSaveBookmark();
   const removeBookmark = useDeleteBookmark();
@@ -30,7 +30,6 @@ function HomePage() {
       bookmarkPageSize={bookmarkPageSize}
       bookmarks={bookmarks}
       hasMoreBookmarks={hasMoreBookmarks}
-      tags={tags}
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}
       onLoadMoreBookmarks={loadMoreBookmarks}
@@ -47,7 +46,6 @@ function HomeErrorPage() {
   return (
     <BookmarkBrowsePage
       bookmarks={[]}
-      tags={[]}
       loadError="Impossible de charger les Bookmarks."
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}

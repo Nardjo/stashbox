@@ -1,3 +1,337 @@
+# Search Button Removal
+
+## Plan
+
+- [x] Remove the visible search submit button from the browse search block.
+- [x] Keep the search form so pressing Enter can still submit semantic search.
+- [x] Keep the type dropdown to the right of the input.
+- [x] Update focused tests and verify browser rendering.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark browse search block.
+
+## Review
+
+- Search controls are now `input | filter`.
+- The visible `Chercher` action is gone because typing already updates the visible results.
+- Enter still routes through the existing form submit handler.
+
+---
+
+# Type Filter Dropdown
+
+## Plan
+
+- [x] Replace the native type select with the app dropdown component.
+- [x] Keep the compact icon trigger at reduced widths.
+- [x] Keep the full `Tous les types` trigger on desktop.
+- [x] Preserve URL sync and filtering behavior.
+- [x] Verify tests, lint, typecheck, and dropdown rendering.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark browse search block.
+
+## Review
+
+- Replaced the native browser select with the Radix select already used by the UI kit.
+- The dropdown menu now uses the app surface, border, check indicator, and monospaced styling.
+- Compact responsive layout now stays `input | filter icon`.
+- Added Vite React dedupe so Radix does not trip an invalid-hook-call during browser runs.
+- Validation passed: targeted web tests, targeted ESLint, typecheck, `git diff --check`, and browser rendering on `http://localhost:5174`.
+- `test:e2e` no longer reports the Radix hook error, but the suite is blocked by the test API at `localhost:3337` being down.
+
+---
+
+# Compact Search Actions
+
+## Plan
+
+- [x] Keep search controls on one row at reduced widths.
+- [x] Turn the search submit action into an icon-sized button before desktop.
+- [x] Turn the type filter into an icon-sized select before desktop.
+- [x] Preserve full text controls on desktop.
+- [x] Verify tests, lint, typecheck, and responsive rendering.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark browse search block.
+
+## Review
+
+- Reduced-width layout is now `search input | filter icon`.
+- Desktop layout keeps `search input | Tous les types`.
+- The type select stays functional and accessible while visually compact.
+
+---
+
+# Bookmark Modal Delete
+
+## Plan
+
+- [x] Add a delete action inside the bookmark detail modal.
+- [x] Reuse the existing delete confirmation flow.
+- [x] Ensure the detail modal closes before the confirmation opens.
+- [x] Cover the modal delete path with tests.
+- [x] Verify lint, typecheck, and browser behavior.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark detail modal.
+
+## Review
+
+- Added a `Supprimer` destructive action in the detail modal footer.
+- The modal action opens the existing confirmation dialog instead of deleting directly.
+- The card hover delete and modal delete now share the same confirmation path.
+
+---
+
+# Bookmark Detail Header Media
+
+## Plan
+
+- [x] Move the detail modal preview from the left column to the top.
+- [x] Style the preview as a compact header band.
+- [x] Keep the modal overflow constraints from the previous pass.
+- [x] Verify tests, lint, typecheck, and browser rendering.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark detail modal.
+
+## Review
+
+- Replaced the two-column detail modal with a top media header and content below.
+- Kept the preview cropped in a fixed-height header band.
+- Preserved hidden vertical scrollbar and blocked horizontal overflow.
+
+---
+
+# Bookmark Detail Modal Scroll
+
+## Plan
+
+- [x] Prevent horizontal overflow inside the detail modal.
+- [x] Keep vertical scrolling functional.
+- [x] Hide the visible vertical scrollbar.
+- [x] Verify tests, lint, typecheck, and browser behavior.
+
+## Scope
+
+- App: `apps/web`.
+- Components/styles: bookmark detail modal only.
+
+## Review
+
+- Added a reusable `scrollbar-none` utility.
+- Applied `overflow-x-hidden` and `min-w-0` constraints to the detail modal layout.
+- Kept the modal vertically scrollable while hiding the scrollbar.
+
+---
+
+# Logo Background Color
+
+## Plan
+
+- [x] Inspect logo alpha/background pixels.
+- [x] Composite logo assets on `#17130D`.
+- [x] Regenerate web favicon/app icons and extension icons.
+- [x] Verify rendered logo in browser.
+
+## Scope
+
+- Apps: `apps/web`, `apps/extension`.
+- Target background color: `#17130D`.
+
+## Review
+
+- The visible bands came from transparent logo pixels rendered over a darker background.
+- Rebuilt logo assets with an opaque `#17130D` background.
+- Updated web logo/favicons/app icons and extension icon sizes.
+
+---
+
+# Bookmark Detail Modal
+
+## Plan
+
+- [x] Remove card descriptions from the grid surface.
+- [x] Make each card open a detail modal from the full card area.
+- [x] Keep open/copy/delete actions separate from the card modal.
+- [x] Show the hidden description and bookmark metadata in the modal.
+- [x] Verify tests, lint, and browser rendering.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark cards only.
+- User-facing copy stays French.
+
+## Review
+
+- Card grid now shows image/fallback, domain, status/type, title, and tags only.
+- Added a full-card click target that opens a detail modal.
+- Detail modal shows description, URL, type/status, tags, dates, source, image URL, embed metadata, errors, and indexed text when available.
+- Existing action rail stays independent for open/copy/delete.
+
+---
+
+# Bookmark Thumbnail Crop
+
+## Plan
+
+- [x] Identify whether the top gap is card padding or thumbnail content.
+- [x] Crop the thumbnail symmetrically inside the existing image mask.
+- [x] Keep hover actions and card layout unchanged.
+- [x] Verify with tests and browser rendering.
+
+## Scope
+
+- App: `apps/web`.
+- Component: bookmark cards only.
+
+## Review
+
+- The visible gaps came from the thumbnail image content, not card padding.
+- Added a centered zoom crop on Open Graph images so previews sit against both top and bottom card edges visually.
+- Kept the card wrapper, action rail, and text content untouched.
+
+---
+
+# Search Shortcut
+
+## Plan
+
+- [x] Add a keyboard shortcut to focus the unified search field.
+- [x] Support `Cmd+K` on macOS and `Ctrl+K` elsewhere.
+- [x] Avoid stealing the shortcut while the user is already typing in another editable field.
+- [x] Cover the behavior with focused component tests.
+- [x] Verify the shortcut in the browser.
+
+## Scope
+
+- App: `apps/web`.
+- User-facing copy stays French.
+- Existing search behavior and URL sync stay unchanged.
+
+## Review
+
+- Added a global `Cmd+K`/`Ctrl+K` handler that focuses the unified search input.
+- Kept editable-field guard so typing in another input/select is not interrupted.
+- Validation passed: browse-page tests, web typecheck, targeted ESLint, web e2e, headless Playwright probe, and in-app browser probe on `localhost:5174`.
+
+---
+
+# Compact Search Controls
+
+## Plan
+
+- [x] Remove visible helper text and tag selection from the search block.
+- [x] Keep only the search field, submit button, and type select.
+- [x] Remove tag filter state from URL sync to avoid hidden active filters.
+- [x] Update tests for the simplified filter model.
+- [x] Verify responsive rendering in browser.
+
+## Scope
+
+- App: `apps/web`.
+- User-facing copy stays French.
+- Keep search by text/semantic and type filtering.
+
+## Review
+
+- Reduced the search block to one search input, one `Chercher` button, and one type select.
+- Removed tag chip selection from the control area.
+- Removed tag filter state from URL sync and delete legacy `tags` params automatically.
+- Kept title/URL local search and semantic search submit behavior.
+- Validation passed: browse-page tests, web typecheck, targeted ESLint, web e2e, and Playwright layout probes at 390px and 1440px with no tag controls and no horizontal overflow.
+
+---
+
+# Stashbox Logo Assets
+
+## Plan
+
+- [x] Generate web favicon/site logo assets from the provided PNG.
+- [x] Replace extension icon sizes from the same source.
+- [x] Wire favicon links in the web root document.
+- [x] Add the logo visibly to the site header.
+- [x] Verify build/tests and browser rendering.
+
+## Scope
+
+- Apps: `apps/web`, `apps/extension`.
+- Source logo: `/Users/jordanbastin/Documents/stashbox.png`.
+- Keep existing industrial UI direction.
+
+## Review
+
+- Generated web assets: `favicon.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `stashbox-logo.png`, and `site.webmanifest`.
+- Replaced extension icons at 16px, 48px, and 128px from the same logo source.
+- Added favicon/apple-touch/manifest links in the root document.
+- Added the logo to the site header beside `Stashbox`.
+- Validation passed: web browse-page tests, web typecheck, extension tests, web build, extension build, targeted ESLint/Prettier, web e2e, HTTP asset checks, and browser screenshot on `localhost:5174`.
+
+---
+
+# Bookmark Card Actions
+
+## Plan
+
+- [x] Move card actions into a hover/focus rail.
+- [x] Add an open-link action for the original URL.
+- [x] Add a copy-URL action as the extra lightweight action.
+- [x] Keep delete confirmation behavior intact.
+- [x] Verify tests, accessibility labels, and browser rendering.
+
+## Scope
+
+- App: `apps/web`.
+- User-facing copy stays French.
+- Action rail must remain usable on keyboard focus and mobile.
+
+## Review
+
+- Added a compact card action rail with `open`, `copy URL`, and `delete` actions.
+- Desktop hides the rail until hover/focus; mobile keeps actions available without relying on hover.
+- `Copy URL` uses Clipboard API with a DOM fallback and confirms with `URL copiée`.
+- Delete still opens the existing confirmation dialog.
+- Validation passed: bookmark card tests, web typecheck, targeted ESLint, Playwright hover/copy/mobile probes, and web e2e.
+
+---
+
+# Search Filter Block
+
+## Plan
+
+- [x] Merge the separate search and quick-filter panels into one block.
+- [x] Place the type select to the right of the search button on desktop.
+- [x] Keep tags visible below the search row as compact filter chips.
+- [x] Preserve existing search/filter behavior and URL state.
+- [x] Verify responsive layout, tests, and browser rendering.
+
+## Scope
+
+- App: `apps/web`.
+- User-facing copy stays French.
+- Existing industrial control-room visual direction stays.
+
+## Review
+
+- Merged the search input, submit button, type select, and tag filters into one control-room block.
+- Desktop layout is `input → chercher → type select`, with all tags directly below.
+- Mobile stacks the same controls without horizontal overflow.
+- Validation passed: web browse-page tests, web typecheck, targeted ESLint, web e2e, in-app browser screenshot, and Playwright layout probes at 390px and 1440px.
+
+---
+
 # Pending Enrichment Diagnosis
 
 ## Plan
