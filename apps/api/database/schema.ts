@@ -26,6 +26,14 @@ export class ApiKeySchema extends BaseModel {
 
 export class BookmarkSchema extends BaseModel {
   static $columns = [
+    'captureByteSize',
+    'captureHeight',
+    'captureMimeType',
+    'capturePath',
+    'captureSource',
+    'captureUrl',
+    'captureWidth',
+    'capturedAt',
     'description',
     'embedData',
     'embedding',
@@ -36,18 +44,41 @@ export class BookmarkSchema extends BaseModel {
     'enrichmentFailureReason',
     'enrichmentStatus',
     'id',
+    'isMedia',
     'lastSavedAt',
+    'mediaKind',
+    'mediaProvider',
     'ogImage',
     'savedAt',
     'savedCount',
     'savedFrom',
     'tags',
     'title',
+    'transcribedAt',
+    'transcriptionError',
+    'transcriptionStatus',
+    'transcriptionText',
     'type',
     'url',
     'urlHash',
   ] as const
   $columns = BookmarkSchema.$columns
+  @column()
+  declare captureByteSize: number | null
+  @column()
+  declare captureHeight: number | null
+  @column()
+  declare captureMimeType: string | null
+  @column()
+  declare capturePath: string | null
+  @column()
+  declare captureSource: string | null
+  @column()
+  declare captureUrl: string | null
+  @column()
+  declare captureWidth: number | null
+  @column.dateTime()
+  declare capturedAt: DateTime | null
   @column()
   declare description: string
   @column()
@@ -68,8 +99,14 @@ export class BookmarkSchema extends BaseModel {
   declare enrichmentStatus: string
   @column({ isPrimary: true })
   declare id: string
+  @column()
+  declare isMedia: boolean
   @column.dateTime()
   declare lastSavedAt: DateTime
+  @column()
+  declare mediaKind: string | null
+  @column()
+  declare mediaProvider: string | null
   @column()
   declare ogImage: string | null
   @column.dateTime()
@@ -82,10 +119,42 @@ export class BookmarkSchema extends BaseModel {
   declare tags: any
   @column()
   declare title: string
+  @column.dateTime()
+  declare transcribedAt: DateTime | null
+  @column()
+  declare transcriptionError: string | null
+  @column()
+  declare transcriptionStatus: string
+  @column()
+  declare transcriptionText: string | null
   @column()
   declare type: string
   @column()
   declare url: string
   @column()
   declare urlHash: string
+}
+
+export class SiteCredentialSchema extends BaseModel {
+  static $columns = [
+    'cookieCount',
+    'createdAt',
+    'domain',
+    'encryptedCookies',
+    'id',
+    'updatedAt',
+  ] as const
+  $columns = SiteCredentialSchema.$columns
+  @column()
+  declare cookieCount: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare domain: string
+  @column()
+  declare encryptedCookies: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }

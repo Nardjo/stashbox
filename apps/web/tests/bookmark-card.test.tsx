@@ -108,6 +108,42 @@ describe("BookmarkCard", () => {
     expect(thumbnail).toHaveClass("scale-[1.18]", "object-center");
   });
 
+  it("prefers client capture over Open Graph for non-YouTube bookmarks", () => {
+    render(
+      <BookmarkCard
+        bookmark={createBookmark({
+          capture: createCapture("https://api.example.com/captures/article.png"),
+          ogImage: "https://example.com/og.png",
+        })}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Aperçu de Readable systems" })).toHaveAttribute(
+      "src",
+      "https://api.example.com/captures/article.png",
+    );
+  });
+
+  it("prefers the YouTube thumbnail over client capture for YouTube bookmarks", () => {
+    render(
+      <BookmarkCard
+        bookmark={createBookmark({
+          type: "youtube",
+          mediaProvider: "youtube",
+          capture: createCapture("https://api.example.com/captures/youtube.png"),
+          ogImage: "https://i.ytimg.com/vi/abc/hqdefault.jpg",
+        })}
+        onDeleteBookmark={async () => {}}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Aperçu de Readable systems" })).toHaveAttribute(
+      "src",
+      "https://i.ytimg.com/vi/abc/hqdefault.jpg",
+    );
+  });
+
   it("shows a domain fallback when no thumbnail is available", () => {
     render(
       <BookmarkCard
@@ -223,5 +259,17 @@ function createBookmark(overrides: Partial<Bookmark> = {}): Bookmark {
     lastSavedAt: "2026-05-06T06:00:00.000Z",
     savedFrom: ["api"],
     ...overrides,
+  };
+}
+
+function createCapture(url: string): NonNullable<Bookmark["capture"]> {
+  return {
+    url,
+    source: "client",
+    mimeType: "image/png",
+    width: 1280,
+    height: 720,
+    byteSize: 123,
+    capturedAt: "2026-05-06T06:00:00.000Z",
   };
 }

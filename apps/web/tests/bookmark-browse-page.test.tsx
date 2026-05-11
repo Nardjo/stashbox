@@ -817,7 +817,7 @@ describe("BookmarkBrowsePage", () => {
     expect(screen.getByText("0 Bookmarks")).toBeInTheDocument();
   });
 
-  it("disables the delete confirmation while deletion is in flight", async () => {
+  it("removes the Bookmark immediately while deletion is in flight", async () => {
     let finishDelete!: () => void;
     const deleteBookmark = vi.fn(
       () =>
@@ -843,14 +843,41 @@ describe("BookmarkBrowsePage", () => {
 
     fireEvent.click(confirmButton);
 
-    await waitFor(() => expect(confirmButton).toBeDisabled());
-    expect(confirmButton).toHaveTextContent("Suppression...");
-    expect(within(dialog).getByRole("button", { name: "Annuler" })).toBeDisabled();
+    expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("alertdialog", { name: "Supprimer ce bookmark ?" }),
+    ).not.toBeInTheDocument();
 
     finishDelete();
-    await waitFor(() =>
-      expect(screen.queryByRole("article", { name: "Readable systems" })).not.toBeInTheDocument(),
+    await waitFor(() => expect(deleteBookmark).toHaveBeenCalledTimes(1));
+  });
+
+  it("restores the Bookmark when deletion fails", async () => {
+    const deleteBookmark = vi.fn().mockRejectedValue(new Error("API unavailable"));
+    renderPage(
+      <BookmarkBrowsePage
+        bookmarks={[createBookmark({ title: "Readable systems" })]}
+        onSaveBookmark={async () => {}}
+        onDeleteBookmark={deleteBookmark}
+      />,
     );
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: "Readable systems" })).getByRole("button", {
+        name: "Supprimer Readable systems",
+      }),
+    );
+    fireEvent.click(
+      within(screen.getByRole("alertdialog", { name: "Supprimer ce bookmark ?" })).getByRole(
+        "button",
+        { name: "Supprimer" },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("article", { name: "Readable systems" })).toBeInTheDocument(),
+    );
+    expect(deleteBookmark).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000001");
   });
 });
 

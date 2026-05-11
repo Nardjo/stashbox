@@ -68,13 +68,22 @@ export const createStashboxServerOperations = serverOnly((client = getStashboxSe
       client.search(searchBookmarksSchema.parse(params)),
     addBookmark: async (params: AddParams) => client.add(addBookmarkSchema.parse(params)),
     deleteBookmark: async ({ id }: { id: string }) =>
-      client.delete(deleteBookmarkSchema.parse({ id }).id),
+      ignoreNotFound(() => client.delete(deleteBookmarkSchema.parse({ id }).id)),
     listSiteCredentials: async () => client.listSiteCredentials(),
     deleteSiteCredential: async ({ id }: { id: string }) =>
       client.deleteSiteCredential(deleteSiteCredentialSchema.parse({ id }).id),
     listTags: async () => client.tags(),
   };
 });
+
+async function ignoreNotFound(action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return;
+    throw error;
+  }
+}
 
 function createClient(fetch?: typeof globalThis.fetch): StashboxClient {
   return new StashboxClient({

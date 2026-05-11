@@ -14,6 +14,11 @@ vi.stubGlobal("chrome", {
 describe("syncCurrentSiteCredentials", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("chrome", {
+      tabs: { query },
+      cookies: { getAll },
+      runtime: { getManifest: () => ({ permissions: ["cookies"] }) },
+    });
   });
 
   it("syncs active HTTP site cookies only when called", async () => {
@@ -73,6 +78,19 @@ describe("syncCurrentSiteCredentials", () => {
       "Site credentials require an HTTP or HTTPS page",
     );
     expect(getAll).not.toHaveBeenCalled();
+    expect(syncSiteCredentials).not.toHaveBeenCalled();
+  });
+
+  it("explains when the cookies API is unavailable until extension reload", async () => {
+    vi.stubGlobal("chrome", {
+      tabs: { query },
+      runtime: { getManifest: () => ({ permissions: ["cookies"] }) },
+    });
+    query.mockResolvedValue([{ url: "https://example.com/account" }]);
+
+    await expect(syncCurrentSiteCredentials({ syncSiteCredentials } as never)).rejects.toThrow(
+      "Rechargez l'extension depuis chrome://extensions",
+    );
     expect(syncSiteCredentials).not.toHaveBeenCalled();
   });
 });

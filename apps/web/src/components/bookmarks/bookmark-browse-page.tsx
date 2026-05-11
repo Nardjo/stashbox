@@ -130,8 +130,32 @@ export function BookmarkBrowsePage({
   }, []);
 
   async function handleDeleteBookmark(id: string) {
-    await onDeleteBookmark(id);
-    setVisibleBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
+    let removedBookmark: Bookmark | undefined;
+    let removedIndex = -1;
+
+    setVisibleBookmarks((current) => {
+      removedIndex = current.findIndex((bookmark) => bookmark.id === id);
+      removedBookmark = removedIndex >= 0 ? current[removedIndex] : undefined;
+      return current.filter((bookmark) => bookmark.id !== id);
+    });
+    setSemanticResults((current) =>
+      current ? current.filter((bookmark) => bookmark.id !== id) : current,
+    );
+
+    try {
+      await onDeleteBookmark(id);
+    } catch {
+      const bookmarkToRestore = removedBookmark;
+      if (bookmarkToRestore) {
+        setVisibleBookmarks((current) => {
+          if (current.some((bookmark) => bookmark.id === id)) return current;
+
+          const restoredBookmarks = [...current];
+          restoredBookmarks.splice(Math.max(removedIndex, 0), 0, bookmarkToRestore);
+          return restoredBookmarks;
+        });
+      }
+    }
   }
 
   async function handleDeleteSiteCredential(id: string) {

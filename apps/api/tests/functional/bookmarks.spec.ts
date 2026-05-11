@@ -40,7 +40,7 @@ test.group('POST /bookmarks', (group) => {
   test('stores one client capture for extension saves', async ({ client, assert }) => {
     const response = await client
       .post('/bookmarks')
-      .headers(auth)
+      .headers({ ...auth, host: 'api.local:4567' })
       .json({
         url: 'https://example.com/captured',
         sharedFrom: 'chrome-extension',
@@ -54,6 +54,7 @@ test.group('POST /bookmarks', (group) => {
     assert.equal(body.capture.width, 1280)
     assert.equal(body.capture.height, 720)
     assert.isAbove(body.capture.byteSize, 0)
+    assert.match(body.capture.url, /^http:\/\/api\.local:4567\/captures\/[0-9a-f-]{36}\.png$/)
 
     const capturePath = new URL(body.capture.url).pathname
     const image = await client.get(capturePath)
@@ -92,11 +93,12 @@ test.group('POST /bookmarks', (group) => {
     const media = await client
       .post('/bookmarks')
       .headers(auth)
-      .json({ url: 'https://www.youtube.com/watch?v=abc123' })
+      .json({ url: 'https://www.youtube.com/watch?t=494s&v=0AlrHPbhNdI' })
     media.assertStatus(201)
     assert.equal(media.body().isMedia, true)
     assert.equal(media.body().mediaKind, 'video')
     assert.equal(media.body().mediaProvider, 'youtube')
+    assert.equal(media.body().ogImage, 'https://i.ytimg.com/vi/0AlrHPbhNdI/hqdefault.jpg')
     assert.equal(media.body().transcriptionStatus, 'pending')
     assert.equal(media.body().enrichmentStatus, 'pending')
 
@@ -107,6 +109,24 @@ test.group('POST /bookmarks', (group) => {
     article.assertStatus(201)
     assert.equal(article.body().isMedia, false)
     assert.equal(article.body().transcriptionStatus, 'none')
+  })
+
+  test('uses YouTube thumbnail path instead of storing client capture', async ({
+    client,
+    assert,
+  }) => {
+    const media = await client
+      .post('/bookmarks')
+      .headers(auth)
+      .json({
+        url: 'https://www.youtube.com/watch?v=thumb123abc',
+        capture: { dataUrl: pngDataUrl, width: 1280, height: 720 },
+      })
+
+    media.assertStatus(201)
+    assert.equal(media.body().mediaProvider, 'youtube')
+    assert.equal(media.body().ogImage, 'https://i.ytimg.com/vi/thumb123abc/hqdefault.jpg')
+    assert.isNull(media.body().capture)
   })
 
   test('transcription failure does not fail enrichment', async ({ assert }) => {
@@ -194,6 +214,24 @@ test.group('GET /bookmarks/:id', (group) => {
     response.assertStatus(200)
     assert.equal(response.body().id, id)
     assert.equal(response.body().url, 'https://example.com/foo')
+  })
+
+  test('derives a YouTube thumbnail when stored ogImage is missing', async ({ client, assert }) => {
+    const created = await client
+      .post('/bookmarks')
+      .headers(auth)
+      .json({ url: 'https://youtube.com/watch?t=494s&v=0AlrHPbhNdI' })
+    const id = created.body().id
+
+    const bookmark = await Bookmark.find(id)
+    assert.exists(bookmark)
+    bookmark!.ogImage = null
+    await bookmark!.save()
+
+    const response = await client.get(`/bookmarks/${id}`).headers(auth)
+
+    response.assertStatus(200)
+    assert.equal(response.body().ogImage, 'https://i.ytimg.com/vi/0AlrHPbhNdI/hqdefault.jpg')
   })
 
   test('returns 404 when bookmark is missing', async ({ client }) => {

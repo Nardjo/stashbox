@@ -3,6 +3,7 @@ export { detectMedia } from "./detect-media.js";
 export { detectType } from "./detect-type.js";
 export { hashUrl } from "./hash-url.js";
 export { normalizeUrl } from "./normalize-url.js";
+export { getYouTubeThumbnailUrl, getYouTubeVideoId } from "./youtube.js";
 export type {
   ApiError,
   Bookmark,
