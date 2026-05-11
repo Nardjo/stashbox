@@ -174,10 +174,10 @@ describe("BookmarkSchema", () => {
     expect(() => BookmarkSchema.parse(valid)).not.toThrow();
   });
 
-  it("accepts capture metadata on a bookmark", () => {
+  it.each(["client", "server"] as const)("accepts %s capture metadata on a bookmark", (source) => {
     const capture = CaptureSchema.parse({
       url: "http://localhost:3334/captures/550e8400-e29b-41d4-a716-446655440000.png",
-      source: "client",
+      source,
       mimeType: "image/png",
       width: 1200,
       height: 800,

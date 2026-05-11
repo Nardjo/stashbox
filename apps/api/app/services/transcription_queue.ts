@@ -13,7 +13,7 @@ interface TranscriptionJobData {
 class TranscriptionQueueService {
   private bullQueue: Queue<TranscriptionJobData> | null = null
   private worker: Worker<TranscriptionJobData> | null = null
-  private inFlight: Promise<void>[] = []
+  private inProcessJobs: TranscriptionJobData[] = []
 
   private get useInProcess(): boolean {
     return env.get('NODE_ENV') === 'test'
@@ -30,10 +30,7 @@ class TranscriptionQueueService {
 
   async dispatch(bookmarkId: string): Promise<void> {
     if (this.useInProcess) {
-      const promise = TranscribeBookmarkJob.handle(bookmarkId).catch((err) => {
-        console.error('[transcription in-process] job failed', err)
-      })
-      this.inFlight.push(promise)
+      this.inProcessJobs.push({ bookmarkId })
       return
     }
 
@@ -42,9 +39,15 @@ class TranscriptionQueueService {
   }
 
   async flush(): Promise<void> {
-    const pending = this.inFlight
-    this.inFlight = []
-    await Promise.all(pending)
+    const pending = this.inProcessJobs
+    this.inProcessJobs = []
+    await Promise.all(
+      pending.map((job) =>
+        TranscribeBookmarkJob.handle(job.bookmarkId).catch((err) => {
+          console.error('[transcription in-process] job failed', err)
+        })
+      )
+    )
   }
 
   async startWorker(): Promise<Worker<TranscriptionJobData>> {

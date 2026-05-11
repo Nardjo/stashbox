@@ -21,6 +21,49 @@ export async function storeClientCapture(
   baseUrl = appUrl
 ): Promise<StoredCapture> {
   const buffer = decodePngDataUrl(capture.dataUrl)
+  return storePngCapture(
+    bookmarkId,
+    buffer,
+    {
+      source: 'client',
+      width: capture.width ?? null,
+      height: capture.height ?? null,
+    },
+    baseUrl
+  )
+}
+
+export async function storeServerCapture(
+  bookmarkId: string,
+  capture: { buffer: Buffer; width?: number | null; height?: number | null },
+  baseUrl = appUrl
+): Promise<StoredCapture> {
+  if (!isPng(capture.buffer)) {
+    throw new InvalidCaptureError('Capture data is not a PNG image')
+  }
+
+  return storePngCapture(
+    bookmarkId,
+    capture.buffer,
+    {
+      source: 'server',
+      width: capture.width ?? null,
+      height: capture.height ?? null,
+    },
+    baseUrl
+  )
+}
+
+async function storePngCapture(
+  bookmarkId: string,
+  buffer: Buffer,
+  metadata: {
+    source: Capture['source']
+    width: number | null
+    height: number | null
+  },
+  baseUrl: string
+): Promise<StoredCapture> {
   const directory = app.makePath('tmp', 'captures')
   const filename = `${bookmarkId}.png`
   const path = join(directory, filename)
@@ -32,10 +75,10 @@ export async function storeClientCapture(
   return {
     path,
     url: `${baseUrl.replace(/\/$/, '')}/captures/${filename}`,
-    source: 'client',
+    source: metadata.source,
     mimeType: 'image/png',
-    width: capture.width ?? null,
-    height: capture.height ?? null,
+    width: metadata.width,
+    height: metadata.height,
     byteSize: buffer.byteLength,
     capturedAt: capturedAt.toISO() ?? capturedAt.toString(),
   }

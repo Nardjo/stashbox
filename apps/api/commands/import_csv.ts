@@ -3,7 +3,7 @@ import { createReadStream } from 'node:fs'
 
 import { args, BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
-import { hashUrl, normalizeUrl } from '@stashbox/shared'
+import { detectMedia, hashUrl, normalizeUrl } from '@stashbox/shared'
 import { parse as parseCsv } from 'csv-parse'
 import { DateTime } from 'luxon'
 
@@ -28,7 +28,9 @@ export default class ImportCsv extends BaseCommand {
 
   async run() {
     const { default: Bookmark } = await import('#models/bookmark')
+    const { default: captureQueue } = await import('#services/capture_queue')
     const { default: enrichmentQueue } = await import('#services/enrichment_queue')
+    const { getYouTubeThumbnailUrl } = await import('#services/youtube_thumbnail')
 
     let total = 0
     let inserted = 0
@@ -78,6 +80,7 @@ export default class ImportCsv extends BaseCommand {
         if (dt.isValid) savedAt = dt
       }
 
+      const media = detectMedia(normalized)
       const bookmark = await Bookmark.create({
         id: randomUUID(),
         url: normalized,
@@ -86,20 +89,30 @@ export default class ImportCsv extends BaseCommand {
         title: raw.title ?? '',
         description: raw.description ?? '',
         tags,
-        ogImage: null,
+        ogImage: media.mediaProvider === 'youtube' ? getYouTubeThumbnailUrl(normalized) : null,
         embedData: null,
+        isMedia: media.isMedia,
+        mediaKind: media.mediaKind,
+        mediaProvider: media.mediaProvider,
         enrichmentStatus: 'pending',
         enrichmentError: null,
         enrichmentFailureReason: null,
         enrichmentAttempts: 0,
         enrichedAt: null,
         embeddingSourceText: null,
+        transcriptionStatus: media.isMedia ? 'pending' : 'none',
+        transcriptionError: null,
+        transcriptionText: null,
+        transcribedAt: null,
         savedCount: 1,
         savedFrom: ['import-csv'],
         ...(savedAt ? { savedAt, lastSavedAt: savedAt } : {}),
       })
 
-      await enrichmentQueue.dispatch(bookmark.id)
+      await Promise.all([
+        media.mediaProvider === 'youtube' ? Promise.resolve() : captureQueue.dispatch(bookmark.id),
+        enrichmentQueue.dispatch(bookmark.id),
+      ])
       inserted++
     }
 
@@ -107,6 +120,6 @@ export default class ImportCsv extends BaseCommand {
       `Import summary — total: ${total}, inserted: ${inserted}, skipped: ${skipped}, failed: ${failed}`
     )
 
-    await enrichmentQueue.shutdown()
+    await Promise.all([captureQueue.shutdown(), enrichmentQueue.shutdown()])
   }
 }
