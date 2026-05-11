@@ -1,3 +1,36 @@
+# Issue 57 - Use Site Credentials For Server Capture
+
+## Plan
+
+- [x] Read GitHub issue #57 and create draft PR linked with `Closes #57`.
+- [x] RED 1: Server Capture job for `https://example.com/...` uses synced `example.com` Site credentials and passes sanitized cookies into Playwright before navigation.
+- [x] GREEN 1: Add credential lookup/decryption for capture by URL domain and extend `ServerCaptureProvider.capture` options.
+- [x] RED 2: Subdomain URL uses parent-domain credentials where cookie domain rules allow it.
+- [x] GREEN 2: implement domain matching compatible with stored normalized credential domains and cookie domain/path/security rules.
+- [x] RED/GREEN 3: missing credentials still captures unauthenticated without failing the job.
+- [x] GREEN 3: keep no-credentials path identical to #55 behavior.
+- [x] RED 4: invalid/decryption-failed credentials degrade gracefully and never leak raw cookie values in capture responses/logs.
+- [x] GREEN 4: isolate credential errors and avoid logging cookie payloads.
+- [x] Verify API tests, targeted lint/prettier/typecheck, and Playwright cookie injection smoke if feasible.
+
+## Review
+
+- Server Capture now loads matching Site credentials by URL host/domain candidates.
+- Matching cookies are decrypted, filtered by domain/path/security rules, converted to Playwright cookie options, and injected before navigation.
+- Missing or invalid credentials fall back to unauthenticated Server Capture.
+- Bookmark/Capture API responses still avoid raw credential exposure; existing Site credentials metadata-only tests pass.
+- Verified targeted API specs, API typecheck, changed-file lint, `git diff --check`, and a real Playwright cookie-injection smoke.
+- Full package lint still fails on existing generated/baseline files under `.adonisjs`, config, and `database/schema.ts`.
+
+## Scope
+
+- Apps/packages: `apps/api` primarily.
+- Public behavior: existing Site credentials APIs remain metadata-only; existing Bookmark/Capture responses do not expose cookies.
+- Worker behavior: Server Capture uses matching stored cookies before page navigation, but missing/invalid credentials do not block capture.
+- Out of scope: UI changes to credential management (#56 already covers sync/list/delete), Groq transcription, new credential schema.
+
+---
+
 # Issue 55 - Server Capture for URL-only Saves
 
 ## Plan
