@@ -6,6 +6,7 @@ import type { AddBookmarkResult, InitialBrowseData } from "~/server/stashbox.ts"
 import {
   addBookmark,
   deleteBookmark,
+  deleteSiteCredential,
   listBookmarks,
   loadInitialBrowseData,
   searchBookmarks,
@@ -18,10 +19,11 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { bookmarkPageSize, bookmarks, hasMoreBookmarks } =
+  const { bookmarkPageSize, bookmarks, hasMoreBookmarks, siteCredentials } =
     Route.useLoaderData() as InitialBrowseData;
   const saveBookmark = useSaveBookmark();
   const removeBookmark = useDeleteBookmark();
+  const removeSiteCredential = useDeleteSiteCredential();
   const loadMoreBookmarks = useLoadMoreBookmarks();
   const semanticSearchBookmarks = useSearchBookmarks();
 
@@ -30,8 +32,10 @@ function HomePage() {
       bookmarkPageSize={bookmarkPageSize}
       bookmarks={bookmarks}
       hasMoreBookmarks={hasMoreBookmarks}
+      siteCredentials={siteCredentials}
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}
+      onDeleteSiteCredential={removeSiteCredential}
       onLoadMoreBookmarks={loadMoreBookmarks}
       onSearchBookmarks={semanticSearchBookmarks}
     />
@@ -46,6 +50,7 @@ function HomeErrorPage() {
   return (
     <BookmarkBrowsePage
       bookmarks={[]}
+      siteCredentials={[]}
       loadError="Impossible de charger les Bookmarks."
       onSaveBookmark={saveBookmark}
       onDeleteBookmark={removeBookmark}
@@ -67,6 +72,15 @@ function useSaveBookmark() {
 function useDeleteBookmark() {
   return async (id: string) => {
     await deleteBookmark({ data: { id } });
+  };
+}
+
+function useDeleteSiteCredential() {
+  const router = useRouter();
+
+  return async (id: string) => {
+    await deleteSiteCredential({ data: { id } });
+    await router.invalidate();
   };
 }
 

@@ -4,18 +4,20 @@ import {
   ApiErrorSchema,
   BookmarkSchema,
   BookmarkTypeSchema,
+  CaptureSchema,
+  ClientCaptureInputSchema,
   CreateBookmarkInputSchema,
   EnrichmentStatusSchema,
+  MediaKindSchema,
+  MediaProviderSchema,
   SearchInputSchema,
+  TranscriptionStatusSchema,
 } from "../src/schemas.js";
 
 describe("BookmarkTypeSchema", () => {
-  it.each(["tweet", "youtube", "article", "image", "pdf", "other"])(
-    "accepts %s",
-    (value) => {
-      expect(BookmarkTypeSchema.parse(value)).toBe(value);
-    },
-  );
+  it.each(["tweet", "youtube", "article", "image", "pdf", "other"])("accepts %s", (value) => {
+    expect(BookmarkTypeSchema.parse(value)).toBe(value);
+  });
 
   it("rejects unknown type", () => {
     expect(() => BookmarkTypeSchema.parse("video")).toThrow();
@@ -32,6 +34,26 @@ describe("EnrichmentStatusSchema", () => {
   });
 });
 
+describe("Media schemas", () => {
+  it.each(["audio", "video"])("accepts media kind %s", (value) => {
+    expect(MediaKindSchema.parse(value)).toBe(value);
+  });
+
+  it.each(["youtube", "vimeo", "soundcloud", "spotify"])("accepts provider %s", (value) => {
+    expect(MediaProviderSchema.parse(value)).toBe(value);
+  });
+});
+
+describe("TranscriptionStatusSchema", () => {
+  it.each(["none", "pending", "transcribing", "done", "failed"])("accepts %s", (value) => {
+    expect(TranscriptionStatusSchema.parse(value)).toBe(value);
+  });
+
+  it("rejects unknown status", () => {
+    expect(() => TranscriptionStatusSchema.parse("queued")).toThrow();
+  });
+});
+
 describe("CreateBookmarkInputSchema", () => {
   it("accepts a minimal payload with just a URL", () => {
     const out = CreateBookmarkInputSchema.parse({ url: "https://example.com/" });
@@ -44,6 +66,29 @@ describe("CreateBookmarkInputSchema", () => {
       content: "<article>hello</article>",
     });
     expect(out.content).toBe("<article>hello</article>");
+  });
+
+  it("accepts optional client capture metadata", () => {
+    const out = CreateBookmarkInputSchema.parse({
+      url: "https://example.com/",
+      sharedFrom: "chrome-extension",
+      capture: {
+        dataUrl: "data:image/png;base64,iVBORw0KGgo=",
+        width: 1200,
+        height: 800,
+      },
+    });
+
+    expect(out.capture?.dataUrl).toMatch(/^data:image\/png;base64,/);
+    expect(out.capture?.width).toBe(1200);
+  });
+
+  it("rejects non-PNG client capture payloads", () => {
+    expect(() =>
+      ClientCaptureInputSchema.parse({
+        dataUrl: "data:image/jpeg;base64,AAAA",
+      }),
+    ).toThrow();
   });
 
   it("rejects missing url", () => {
@@ -104,13 +149,21 @@ describe("BookmarkSchema", () => {
     tags: ["greeting"],
     embedding: null,
     ogImage: null,
+    capture: null,
     embedData: null,
+    isMedia: false,
+    mediaKind: null,
+    mediaProvider: null,
     enrichmentStatus: "done",
     enrichmentError: null,
     enrichmentFailureReason: null,
     enrichmentAttempts: 1,
     enrichedAt: "2026-04-27T10:00:00.000Z",
     embeddingSourceText: null,
+    transcriptionStatus: "none",
+    transcriptionError: null,
+    transcriptionText: null,
+    transcribedAt: null,
     savedAt: "2026-04-27T09:00:00.000Z",
     savedCount: 1,
     lastSavedAt: "2026-04-27T09:00:00.000Z",
@@ -119,6 +172,20 @@ describe("BookmarkSchema", () => {
 
   it("accepts a fully-formed bookmark", () => {
     expect(() => BookmarkSchema.parse(valid)).not.toThrow();
+  });
+
+  it("accepts capture metadata on a bookmark", () => {
+    const capture = CaptureSchema.parse({
+      url: "http://localhost:3334/captures/550e8400-e29b-41d4-a716-446655440000.png",
+      source: "client",
+      mimeType: "image/png",
+      width: 1200,
+      height: 800,
+      byteSize: 128,
+      capturedAt: "2026-05-10T10:00:00.000Z",
+    });
+
+    expect(BookmarkSchema.parse({ ...valid, capture }).capture).toEqual(capture);
   });
 
   it("rejects an invalid urlHash length", () => {

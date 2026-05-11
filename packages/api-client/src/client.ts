@@ -1,4 +1,10 @@
-import type { Bookmark, BookmarkType, CreateBookmarkInput } from "@stashbox/shared";
+import type {
+  Bookmark,
+  BookmarkType,
+  CreateBookmarkInput,
+  SiteCredentialMetadata,
+  SyncSiteCredentialsInput,
+} from "@stashbox/shared";
 
 export class ApiError extends Error {
   constructor(
@@ -32,7 +38,9 @@ export interface ListParams {
   tag?: string;
 }
 
-export interface AddParams extends CreateBookmarkInput {}
+export type AddParams = CreateBookmarkInput;
+
+export type SyncSiteCredentialsParams = SyncSiteCredentialsInput;
 
 export interface Tag {
   tag: string;
@@ -91,6 +99,24 @@ export class StashboxClient {
   async tags(minCount?: number): Promise<Tag[]> {
     const res = await this.getQuery<{ results: Tag[] }>("/tags", minCount ? { minCount } : {});
     return res.results;
+  }
+
+  async listSiteCredentials(): Promise<SiteCredentialMetadata[]> {
+    const res = await this.getQuery<{ results: SiteCredentialMetadata[] }>("/site-credentials");
+    return res.results;
+  }
+
+  async getSiteCredential(id: string): Promise<SiteCredentialMetadata> {
+    const res = await this.request("GET", `/site-credentials/${id}`);
+    return res.json() as Promise<SiteCredentialMetadata>;
+  }
+
+  async syncSiteCredentials(params: SyncSiteCredentialsParams): Promise<SiteCredentialMetadata> {
+    return this.post<SiteCredentialMetadata>("/site-credentials/sync", params);
+  }
+
+  async deleteSiteCredential(id: string): Promise<void> {
+    await this.request("DELETE", `/site-credentials/${id}`);
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {

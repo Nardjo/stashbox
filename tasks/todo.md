@@ -1,3 +1,78 @@
+# Parallel Implementation: Issues #54, #56, #58
+
+## Plan
+
+- [x] Launch parallel workers for #54 Client Capture, #56 Site credentials, and #58 Media detection.
+- [x] Prepare shared integration contracts for Bookmark fields and API serialization.
+- [x] Integrate #54 changes and verify extension/API/Web behavior.
+- [x] Integrate #56 changes and verify credential sync/API/Web behavior.
+- [x] Integrate #58 changes and verify media detection/transcription lifecycle behavior.
+- [x] Resolve conflicts across shared schemas, controllers, tests, and UI.
+- [x] Run focused tests, typechecks, lint, and browser verification.
+
+## Scope
+
+- Issues: #54, #56, #58.
+- Apps/packages: `apps/api`, `apps/extension`, `apps/web`, `packages/shared`, `packages/api-client`.
+- Keep #55 Server Capture, #57 authenticated Server Capture, #59 Groq transcription worker, and later slices out of scope.
+
+---
+
+# Issue 58 Media Detection And Transcription Lifecycle
+
+## Plan
+
+- [ ] Add shared allowlist-based Media detection separate from Bookmark Type.
+- [ ] Add Bookmark transcription status/result/error contracts.
+- [ ] Persist Media and transcription fields in the API.
+- [ ] Enqueue placeholder transcription work for Media Bookmarks without blocking Save or Enrichment.
+- [ ] Keep transcription failures isolated from `enrichmentStatus`.
+- [ ] Surface transcription status/errors in the Web App.
+- [ ] Add focused shared/API/Web tests and run verification.
+
+## Scope
+
+- Apps/packages: `packages/shared`, `apps/api`, `apps/web`.
+- Out of scope: Capture, Site credentials, actual Groq transcription worker.
+
+## Review
+
+- Added allowlist media detection in shared code, separate from Bookmark Type.
+- API now persists media metadata and transcription lifecycle fields.
+- Media saves enqueue placeholder transcription work without blocking Save or changing enrichment status.
+- Web cards/details surface transcription status/errors.
+- Verified with shared tests, API suite, Web tests, and targeted typechecks.
+
+---
+
+# Site Credentials Sync
+
+## Plan
+
+- [ ] Add encrypted Site credentials persistence keyed by normalized domain.
+- [ ] Add authenticated sync/list/read/delete API returning metadata only.
+- [ ] Add API client/shared types for Site credentials metadata and sync payloads.
+- [ ] Add explicit extension action to sync current-site cookies without coupling to Bookmark save.
+- [ ] Add Web App management UI to list and delete stored Site credentials.
+- [ ] Add focused API, client, extension, and Web App tests.
+- [ ] Verify targeted tests, typecheck/lint where feasible, and `git diff --check`.
+
+## Scope
+
+- Apps: `apps/api`, `apps/extension`, `apps/web`.
+- Shared/client packages only for cross-app request/response types.
+- Out of scope: Capture storage integration and media detection/transcription use.
+
+## Review
+
+- Added encrypted Site credentials storage keyed by normalized domain.
+- Added authenticated sync/list/read/delete API and API client methods returning metadata only.
+- Extension now has an explicit current-site cookie sync action, separate from Bookmark Save.
+- Web App now has a collapsible Identifiants site section for list/delete.
+- Verified with API, API client, extension, Web tests, and targeted typechecks.
+
+---
+
 # Extension Web Design Alignment
 
 ## Plan
@@ -20,6 +95,33 @@
 - Popup success and settings states were visually verified with a mocked extension runtime.
 - Options page was visually verified from the built extension output.
 - Validation passed: extension build, tests, typecheck, lint, and `git diff --check`.
+
+---
+
+# Issue 54 - Extension Client Capture
+
+## Plan
+
+- [ ] Add nullable Capture metadata to the shared Bookmark contract and API create payload.
+- [ ] Persist one normalized local Capture image only when `/bookmarks` creates a new Bookmark.
+- [ ] Keep dedupe/conflict saves from replacing an existing Capture.
+- [ ] Capture the visible viewport in the extension save flow and send it with the save request.
+- [ ] Prefer Capture over `ogImage` in Web App card and detail previews.
+- [ ] Add focused shared/client/API/extension/web tests.
+- [ ] Run targeted verification and record results.
+
+## Scope
+
+- Apps/packages: `apps/extension`, `apps/api`, `apps/web`, `packages/shared`, `packages/api-client`.
+- Excluded: Site credentials, Media detection/transcription, Server Capture, full-page/multi-variant capture.
+
+## Review
+
+- Extension Save captures the visible viewport as a PNG and sends it with the Bookmark create request.
+- API stores one local Capture for new Bookmarks, exposes metadata, and serves the image under `/captures/:file`.
+- Dedupe conflict responses keep the original Capture and do not overwrite it.
+- Web cards/details prefer Capture over OpenGraph images.
+- Verified with shared/API/API-client/extension/Web tests and targeted typechecks.
 
 ---
 
