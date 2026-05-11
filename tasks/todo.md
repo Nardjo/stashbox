@@ -20,6 +20,7 @@
 - CSV import also dispatches capture for URL-only non-YouTube rows.
 - Capture failures are isolated from enrichment state.
 - Targeted lint/prettier, package typechecks, API test suite, shared/api-client tests, and Playwright smoke passed.
+- Follow-up diagnosis: the current dev worker process was stale after adding `captureQueue`; `apps/api/scripts/dev.mjs` now runs `queue:listen` under Node watch mode so future worker code changes restart the worker.
 
 ## Scope
 

@@ -20,3 +20,4 @@
 - Web server functions should treat stale delete `404 not_found` responses as idempotent success when the user intent is "remove from this list".
 - Delete interactions should remove list items optimistically before awaiting server functions, then restore on rejection; otherwise interrupted dev/server calls can leave confirmation dialogs stuck.
 - YouTube thumbnails must be derived from the video id at ingest/serialization time; extension-provided content can skip oEmbed enrichment entirely.
+- When adding a new long-lived queue worker, update the dev runner restart path too; API HMR invalidates HTTP modules, but an existing `ace queue:listen` process keeps its old imports until restarted.

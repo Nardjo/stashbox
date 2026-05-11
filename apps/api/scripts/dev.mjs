@@ -14,7 +14,7 @@ const env = {
 }
 
 start('api', ['ace', 'serve', '--hmr'])
-start('worker', ['ace', 'queue:listen'])
+start('worker', ['--watch', '--watch-preserve-output', 'ace', 'queue:listen'])
 
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   process.on(signal, () => shutdown(signal))
