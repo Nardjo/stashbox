@@ -18,6 +18,7 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
   const [hasCopiedUrl, setHasCopiedUrl] = useState(false);
   const domain = getDomain(bookmark.url);
   const title = bookmark.title.trim() || domain || bookmark.url;
+  const previewImageUrl = bookmark.capture?.url ?? bookmark.ogImage;
   const isLoading =
     bookmark.enrichmentStatus === "pending" || bookmark.enrichmentStatus === "enriching";
 
@@ -119,10 +120,10 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
           >
             !
           </div>
-        ) : bookmark.ogImage ? (
+        ) : previewImageUrl ? (
           <img
             className="h-full w-full scale-[1.18] object-cover object-center grayscale transition duration-300 group-hover:scale-[1.2] group-hover:grayscale-0"
-            src={bookmark.ogImage}
+            src={previewImageUrl}
             alt={`Aperçu de ${title}`}
           />
         ) : (
@@ -146,6 +147,14 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
               {getStatusLabel(bookmark.enrichmentStatus)}
             </Badge>
             <Badge>{bookmark.type}</Badge>
+            {bookmark.transcriptionStatus && bookmark.transcriptionStatus !== "none" ? (
+              <Badge
+                variant="outline"
+                className={getTranscriptionStatusClassName(bookmark.transcriptionStatus)}
+              >
+                {getTranscriptionStatusLabel(bookmark.transcriptionStatus)}
+              </Badge>
+            ) : null}
           </div>
         </div>
         <h2 className="font-display text-xl font-semibold uppercase leading-none tracking-[-0.01em] text-foreground">
@@ -166,10 +175,10 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
         <DialogContent className="scrollbar-none max-h-[min(90vh,46rem)] max-w-3xl overflow-y-auto overflow-x-hidden p-0">
           <div className="min-w-0">
             <div className="archive-grid-surface h-52 overflow-hidden border-b border-border bg-muted sm:h-60">
-              {bookmark.ogImage ? (
+              {previewImageUrl ? (
                 <img
                   className="h-full w-full scale-[1.08] object-cover object-center grayscale"
-                  src={bookmark.ogImage}
+                  src={previewImageUrl}
                   alt={`Aperçu de ${title}`}
                 />
               ) : (
@@ -192,6 +201,14 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
                     {getStatusLabel(bookmark.enrichmentStatus)}
                   </Badge>
                   <Badge>{bookmark.type}</Badge>
+                  {bookmark.transcriptionStatus && bookmark.transcriptionStatus !== "none" ? (
+                    <Badge
+                      variant="outline"
+                      className={getTranscriptionStatusClassName(bookmark.transcriptionStatus)}
+                    >
+                      {getTranscriptionStatusLabel(bookmark.transcriptionStatus)}
+                    </Badge>
+                  ) : null}
                 </div>
                 <DialogTitle className="text-2xl tracking-[0.02em]">{title}</DialogTitle>
                 <DialogDescription className="break-all">{bookmark.url}</DialogDescription>
@@ -210,6 +227,11 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
                   {formatBookmarkDate(bookmark.enrichedAt)}
                 </DetailItem>
                 <DetailItem label="Tentatives">{bookmark.enrichmentAttempts}</DetailItem>
+                {bookmark.transcriptionStatus ? (
+                  <DetailItem label="Transcription">
+                    {getTranscriptionStatusLabel(bookmark.transcriptionStatus)}
+                  </DetailItem>
+                ) : null}
               </div>
 
               <DetailBlock label="Description">
@@ -237,7 +259,21 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
                 <DetailItem label="Source">
                   {bookmark.savedFrom.length > 0 ? bookmark.savedFrom.join(", ") : "Non renseignée"}
                 </DetailItem>
-                <DetailItem label="Image">
+                <DetailItem label="Capture">
+                  {bookmark.capture ? (
+                    <a
+                      href={bookmark.capture.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-primary hover:underline"
+                    >
+                      {bookmark.capture.url}
+                    </a>
+                  ) : (
+                    "Aucune capture."
+                  )}
+                </DetailItem>
+                <DetailItem label="Image OpenGraph">
                   {bookmark.ogImage ? (
                     <a
                       href={bookmark.ogImage}
@@ -252,6 +288,18 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
                   )}
                 </DetailItem>
               </div>
+
+              {bookmark.transcriptionError || bookmark.transcriptionText ? (
+                <DetailBlock label="Transcription média">
+                  {bookmark.transcriptionText ? (
+                    <pre className="max-h-48 max-w-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words font-mono text-xs">
+                      {bookmark.transcriptionText}
+                    </pre>
+                  ) : (
+                    bookmark.transcriptionError
+                  )}
+                </DetailBlock>
+              ) : null}
 
               {getEmbedDataSummary(bookmark.embedData).length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -385,6 +433,21 @@ function getStatusClassName(status: Bookmark["enrichmentStatus"]) {
   if (status === "degraded") return "border-amber-500/70 text-amber-600 dark:text-amber-300";
 
   return "border-accent text-accent";
+}
+
+function getTranscriptionStatusLabel(status: NonNullable<Bookmark["transcriptionStatus"]>) {
+  if (status === "done") return "Transcrit";
+  if (status === "failed") return "Transcription échouée";
+  if (status === "transcribing") return "Transcription";
+  if (status === "pending") return "À transcrire";
+  return "Sans transcription";
+}
+
+function getTranscriptionStatusClassName(status: NonNullable<Bookmark["transcriptionStatus"]>) {
+  if (status === "done") return "border-[var(--signal)] text-[var(--signal)]";
+  if (status === "failed") return "border-destructive text-destructive";
+  if (status === "transcribing") return "border-accent text-accent";
+  return "border-amber-500/70 text-amber-600 dark:text-amber-300";
 }
 
 function formatBookmarkDate(value: string | null) {

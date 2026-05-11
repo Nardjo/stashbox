@@ -24,6 +24,7 @@ describe("home route", () => {
     vi.stubGlobal("fetch", async (url: string | URL | Request, init?: RequestInit) => {
       requests.push({ url: String(url), init });
       if (String(url).endsWith("/tags")) return Response.json({ results: tags });
+      if (String(url).endsWith("/site-credentials")) return Response.json({ results: [] });
       return Response.json({ results: bookmarks });
     });
 
@@ -33,10 +34,12 @@ describe("home route", () => {
       bookmarkPageSize: 48,
       bookmarks,
       hasMoreBookmarks: true,
+      siteCredentials: [],
       tags,
     });
     expect(requests.map((request) => request.url)).toEqual([
       "https://stashbox.example/bookmarks?limit=48&offset=0",
+      "https://stashbox.example/site-credentials",
       "https://stashbox.example/tags",
     ]);
   });

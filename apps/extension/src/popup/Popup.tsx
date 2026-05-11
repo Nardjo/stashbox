@@ -1,16 +1,19 @@
 import { ApiError, StashboxClient } from "@stashbox/api-client";
-import type { Bookmark } from "@stashbox/shared";
+import type { Bookmark, ClientCaptureInput, SiteCredentialMetadata } from "@stashbox/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useSaveFlow } from "../hooks/useSaveFlow.js";
 import { getOptions, saveOptions } from "../lib/options.js";
 import { pollUntilDone } from "../lib/poll.js";
+import { syncCurrentSiteCredentials } from "../lib/siteCredentials.js";
 
 interface ExtractedContent {
   title: string;
   content: string;
   url: string;
 }
+
+type CredentialSyncState = "idle" | "syncing" | "synced" | "failed";
 
 async function extractFromActiveTab(): Promise<ExtractedContent> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -38,6 +41,26 @@ async function extractFromActiveTab(): Promise<ExtractedContent> {
     await chrome.scripting.executeScript({ target: { tabId }, files });
     return tryMessage();
   }
+}
+
+async function captureVisibleViewport(): Promise<ClientCaptureInput> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) throw new Error("No active tab");
+
+  const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+  const viewport = await chrome.scripting
+    .executeScript({
+      target: { tabId: tab.id },
+      func: () => ({ width: window.innerWidth, height: window.innerHeight }),
+    })
+    .then((results) => results[0]?.result)
+    .catch(() => undefined);
+
+  return {
+    dataUrl,
+    width: viewport?.width,
+    height: viewport?.height,
+  };
 }
 
 /* ─── Icons ─── */
@@ -86,6 +109,25 @@ function IconSpinner({ className }: { className?: string }) {
         strokeWidth="2.5"
       />
       <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  );
+}
+
+function IconKey({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.75 5.25a4.5 4.5 0 00-4.318 5.764L3 19.446V21h1.554l1.5-1.5h2.25v-2.25h2.25l2.432-2.432A4.5 4.5 0 1015.75 5.25z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25h.008v.008h-.008z" />
     </svg>
   );
 }
@@ -155,6 +197,9 @@ export function Popup() {
   const [ready, setReady] = useState(false);
   const [client, setClient] = useState<StashboxClient | null>(null);
   const [view, setView] = useState<"main" | "settings">("main");
+  const [credentialSyncState, setCredentialSyncState] = useState<CredentialSyncState>("idle");
+  const [credentialSync, setCredentialSync] = useState<SiteCredentialMetadata | null>(null);
+  const [credentialSyncError, setCredentialSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     getOptions().then(({ apiUrl, apiKey }) => {
@@ -166,10 +211,13 @@ export function Popup() {
   const save = useCallback(async (): Promise<Bookmark> => {
     if (!client) throw new Error("Not configured");
     const extracted = await extractFromActiveTab();
+    const capture = await captureVisibleViewport();
     try {
       return await client.add({
         url: extracted.url,
         content: extracted.content || undefined,
+        sharedFrom: "chrome-extension",
+        capture,
       });
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -192,6 +240,23 @@ export function Popup() {
   );
 
   const { state, bookmark, error, trigger } = useSaveFlow({ save, poll });
+
+  const syncCredentials = useCallback(async () => {
+    if (!client) return;
+
+    setCredentialSyncState("syncing");
+    setCredentialSync(null);
+    setCredentialSyncError(null);
+
+    try {
+      const metadata = await syncCurrentSiteCredentials(client);
+      setCredentialSync(metadata);
+      setCredentialSyncState("synced");
+    } catch (err) {
+      setCredentialSyncError(err instanceof Error ? err.message : "Unknown error");
+      setCredentialSyncState("failed");
+    }
+  }, [client]);
 
   const autoTriggered = useRef(false);
   useEffect(() => {
@@ -376,6 +441,37 @@ export function Popup() {
                 </button>
               </div>
             )}
+
+            <div className="archive-panel rounded-sm p-4 animate-fade-up">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-vault-border bg-vault-elevated/70">
+                  {credentialSyncState === "syncing" ? (
+                    <IconSpinner className="h-5 w-5 animate-spin text-brass-600" />
+                  ) : (
+                    <IconKey className="h-5 w-5 text-brass-600" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="technical-label">Identifiants site</p>
+                  <p className="mt-1 font-mono text-xs leading-relaxed text-parchment-200">
+                    {credentialSyncState === "synced" && credentialSync
+                      ? `${credentialSync.domain} · ${credentialSync.cookieCount} cookies synchronisés.`
+                      : credentialSyncState === "failed" && credentialSyncError
+                        ? credentialSyncError
+                        : "Action explicite pour transmettre les cookies du site actif."}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={syncCredentials}
+                disabled={credentialSyncState === "syncing"}
+                className="btn-ghost mt-4 flex w-full items-center justify-center gap-2"
+              >
+                <IconKey className="h-3.5 w-3.5" />
+                {credentialSyncState === "syncing" ? "Synchronisation..." : "Synchroniser cookies"}
+              </button>
+            </div>
           </div>
         )}
       </div>

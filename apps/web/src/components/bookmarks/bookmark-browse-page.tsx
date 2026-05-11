@@ -1,5 +1,5 @@
-import type { Bookmark } from "@stashbox/shared";
-import { SlidersHorizontal } from "lucide-react";
+import type { Bookmark, SiteCredentialMetadata } from "@stashbox/shared";
+import { ChevronDown, KeyRound, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -19,6 +19,7 @@ const bookmarkTypes = ["tweet", "youtube", "article", "image", "pdf", "other"] a
 const searchParamName = "q";
 const legacySemanticSearchParamName = "semantic";
 const allBookmarkTypesValue = "all";
+const emptySiteCredentials: SiteCredentialMetadata[] = [];
 const filterControlClassName =
   "w-full rounded-sm border border-input bg-card/80 px-3 py-2 font-mono text-sm text-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.04)] outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -26,9 +27,11 @@ type BookmarkBrowsePageProps = {
   bookmarkPageSize?: number;
   bookmarks: Bookmark[];
   hasMoreBookmarks?: boolean;
+  siteCredentials?: SiteCredentialMetadata[];
   loadError?: string;
   onSaveBookmark: (url: string) => Promise<SaveBookmarkResult | void>;
   onDeleteBookmark: (id: string) => Promise<void>;
+  onDeleteSiteCredential?: (id: string) => Promise<void>;
   onLoadMoreBookmarks?: (params: BookmarkPageParams) => Promise<Bookmark[]>;
   onSearchBookmarks?: (query: string) => Promise<Bookmark[]>;
 };
@@ -37,13 +40,18 @@ export function BookmarkBrowsePage({
   bookmarkPageSize = 48,
   bookmarks,
   hasMoreBookmarks = false,
+  siteCredentials = emptySiteCredentials,
   loadError,
   onSaveBookmark,
   onDeleteBookmark,
+  onDeleteSiteCredential,
   onLoadMoreBookmarks,
   onSearchBookmarks,
 }: BookmarkBrowsePageProps) {
   const [visibleBookmarks, setVisibleBookmarks] = useState(bookmarks);
+  const [visibleSiteCredentials, setVisibleSiteCredentials] = useState(siteCredentials);
+  const [isCredentialsOpen, setIsCredentialsOpen] = useState(false);
+  const [deletingCredentialId, setDeletingCredentialId] = useState<string | null>(null);
   const [filters, setFilters] = useState<BookmarkFilters>(getInitialBookmarkFilters);
   const [searchQuery, setSearchQuery] = useState(getInitialSearchQuery);
   const [semanticResults, setSemanticResults] = useState<Bookmark[] | null>(null);
@@ -79,6 +87,10 @@ export function BookmarkBrowsePage({
     setVisibleBookmarks(bookmarks);
     setCanLoadMoreBookmarks(hasMoreBookmarks);
   }, [bookmarks, filters, hasMoreBookmarks, searchQuery]);
+
+  useEffect(() => {
+    setVisibleSiteCredentials(siteCredentials);
+  }, [siteCredentials]);
 
   useEffect(() => {
     setHasLoadedUrlFilters(true);
@@ -120,6 +132,18 @@ export function BookmarkBrowsePage({
   async function handleDeleteBookmark(id: string) {
     await onDeleteBookmark(id);
     setVisibleBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
+  }
+
+  async function handleDeleteSiteCredential(id: string) {
+    if (!onDeleteSiteCredential || deletingCredentialId) return;
+
+    setDeletingCredentialId(id);
+    try {
+      await onDeleteSiteCredential(id);
+      setVisibleSiteCredentials((current) => current.filter((credential) => credential.id !== id));
+    } finally {
+      setDeletingCredentialId(null);
+    }
   }
 
   async function handleLoadMoreBookmarks() {
@@ -285,6 +309,72 @@ export function BookmarkBrowsePage({
           </div>
         </form>
 
+        <section className="archive-panel overflow-hidden rounded-sm border-border">
+          <button
+            type="button"
+            aria-expanded={isCredentialsOpen}
+            onClick={() => setIsCredentialsOpen((current) => !current)}
+            className="flex w-full items-center justify-between gap-3 p-3 text-left sm:p-4"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-border bg-card/70 text-primary">
+                <KeyRound aria-hidden="true" className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="technical-label block">Identifiants site</span>
+                <span className="mt-1 block truncate font-mono text-sm text-muted-foreground">
+                  {visibleSiteCredentials.length === 0
+                    ? "Aucun cookie synchronisé"
+                    : `${visibleSiteCredentials.length} domaine${
+                        visibleSiteCredentials.length > 1 ? "s" : ""
+                      } synchronisé${visibleSiteCredentials.length > 1 ? "s" : ""}`}
+                </span>
+              </span>
+            </span>
+            <ChevronDown
+              aria-hidden="true"
+              className={`h-4 w-4 shrink-0 transition ${isCredentialsOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {isCredentialsOpen ? (
+            <div className="border-t border-border p-3 sm:p-4">
+              {visibleSiteCredentials.length === 0 ? (
+                <p className="font-mono text-sm text-muted-foreground">
+                  Synchronisez les cookies depuis l'extension pour les domaines authentifiés.
+                </p>
+              ) : (
+                <ul aria-label="Identifiants site synchronisés" className="grid gap-2">
+                  {visibleSiteCredentials.map((credential) => (
+                    <li
+                      key={credential.id}
+                      className="grid gap-3 rounded-sm border border-border bg-card/60 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-mono text-sm font-semibold text-foreground">
+                          {credential.domain}
+                        </p>
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                          {credential.cookieCount} cookies ·{" "}
+                          {formatBookmarkDate(credential.updatedAt)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteSiteCredential(credential.id)}
+                        disabled={!onDeleteSiteCredential || deletingCredentialId === credential.id}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-destructive/50 px-3 font-mono text-xs font-semibold uppercase tracking-[0.14em] text-destructive transition hover:border-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                        {deletingCredentialId === credential.id ? "Suppression..." : "Supprimer"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+        </section>
+
         {hasEmptySearchResults ? (
           <p className="archive-panel rounded-sm border-border p-8 text-center font-mono text-sm text-muted-foreground">
             Aucun résultat.
@@ -420,6 +510,15 @@ function mergeBookmarks(primaryBookmarks: Bookmark[], secondaryBookmarks: Bookma
   }
 
   return mergedBookmarks;
+}
+
+function formatBookmarkDate(value: string | null) {
+  if (!value) return "Non renseigné";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toISOString().replace("T", " ").replace(".000Z", " UTC");
 }
 
 function isEditableKeyboardTarget(target: EventTarget | null) {

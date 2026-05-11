@@ -3,7 +3,10 @@ import type {
   BookmarkType,
   EnrichmentFailureReason,
   EnrichmentStatus,
+  MediaKind,
+  MediaProvider,
   SavedFrom,
+  TranscriptionStatus,
 } from '@stashbox/shared'
 import { DateTime } from 'luxon'
 
@@ -38,11 +41,44 @@ export default class Bookmark extends BaseModel {
   @column()
   declare ogImage: string | null
 
+  @column()
+  declare capturePath: string | null
+
+  @column()
+  declare captureUrl: string | null
+
+  @column()
+  declare captureSource: 'client' | null
+
+  @column()
+  declare captureMimeType: 'image/png' | null
+
+  @column()
+  declare captureWidth: number | null
+
+  @column()
+  declare captureHeight: number | null
+
+  @column()
+  declare captureByteSize: number | null
+
+  @column.dateTime()
+  declare capturedAt: DateTime | null
+
   @column({
     prepare: (v: unknown) => (v === null || v === undefined ? null : JSON.stringify(v)),
     consume: (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v),
   })
   declare embedData: unknown | null
+
+  @column()
+  declare isMedia: boolean
+
+  @column()
+  declare mediaKind: MediaKind | null
+
+  @column()
+  declare mediaProvider: MediaProvider | null
 
   @column()
   declare enrichmentStatus: EnrichmentStatus
@@ -61,6 +97,18 @@ export default class Bookmark extends BaseModel {
 
   @column()
   declare embeddingSourceText: string | null
+
+  @column()
+  declare transcriptionStatus: TranscriptionStatus
+
+  @column()
+  declare transcriptionError: string | null
+
+  @column()
+  declare transcriptionText: string | null
+
+  @column.dateTime()
+  declare transcribedAt: DateTime | null
 
   @column.dateTime({ autoCreate: true })
   declare savedAt: DateTime

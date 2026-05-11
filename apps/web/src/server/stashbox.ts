@@ -1,6 +1,6 @@
 import type { AddParams, ListParams, SearchParams, Tag } from "@stashbox/api-client";
 import { ApiError, StashboxClient } from "@stashbox/api-client";
-import type { Bookmark } from "@stashbox/shared";
+import type { Bookmark, SiteCredentialMetadata } from "@stashbox/shared";
 import { createServerFn, serverOnly } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -43,6 +43,10 @@ const deleteBookmarkSchema = z.object({
   id: z.string().uuid(),
 });
 
+const deleteSiteCredentialSchema = z.object({
+  id: z.string().uuid(),
+});
+
 const initialBookmarksPage = { limit: 48, offset: 0 } satisfies ListParams;
 
 let client: StashboxClient | undefined;
@@ -65,6 +69,9 @@ export const createStashboxServerOperations = serverOnly((client = getStashboxSe
     addBookmark: async (params: AddParams) => client.add(addBookmarkSchema.parse(params)),
     deleteBookmark: async ({ id }: { id: string }) =>
       client.delete(deleteBookmarkSchema.parse({ id }).id),
+    listSiteCredentials: async () => client.listSiteCredentials(),
+    deleteSiteCredential: async ({ id }: { id: string }) =>
+      client.deleteSiteCredential(deleteSiteCredentialSchema.parse({ id }).id),
     listTags: async () => client.tags(),
   };
 });
@@ -122,6 +129,15 @@ export const deleteBookmark = createServerFn({ method: "POST" })
   .type("dynamic")
   .handler(async ({ data }) => createStashboxServerOperations().deleteBookmark(data));
 
+export const listSiteCredentials = createServerFn({ method: "GET" })
+  .type("dynamic")
+  .handler(async (): Promise<unknown> => createStashboxServerOperations().listSiteCredentials());
+
+export const deleteSiteCredential = createServerFn({ method: "POST" })
+  .validator((data: { id: string }) => deleteSiteCredentialSchema.parse(data))
+  .type("dynamic")
+  .handler(async ({ data }) => createStashboxServerOperations().deleteSiteCredential(data));
+
 export const listTags = createServerFn({ method: "GET" })
   .type("dynamic")
   .handler(async () => createStashboxServerOperations().listTags());
@@ -130,18 +146,23 @@ export type InitialBrowseData = {
   bookmarkPageSize: number;
   bookmarks: Bookmark[];
   hasMoreBookmarks: boolean;
+  siteCredentials: SiteCredentialMetadata[];
   tags: Tag[];
 };
 
 export const loadInitialBrowseDataFromApi = serverOnly(async (): Promise<InitialBrowseData> => {
   const operations = createStashboxServerOperations();
-  const bookmarks = await operations.listBookmarks(initialBookmarksPage);
-  const tags = await operations.listTags();
+  const [bookmarks, siteCredentials, tags] = await Promise.all([
+    operations.listBookmarks(initialBookmarksPage),
+    operations.listSiteCredentials(),
+    operations.listTags(),
+  ]);
 
   return {
     bookmarkPageSize: initialBookmarksPage.limit,
     bookmarks,
     hasMoreBookmarks: bookmarks.length === initialBookmarksPage.limit,
+    siteCredentials,
     tags,
   };
 });
