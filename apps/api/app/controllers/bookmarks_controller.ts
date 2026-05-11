@@ -8,6 +8,7 @@ import vine from '@vinejs/vine'
 import { DateTime } from 'luxon'
 
 import Bookmark from '#models/bookmark'
+import captureQueue from '#services/capture_queue'
 import { storeClientCapture, type StoredCapture } from '#services/capture_storage'
 import enrichmentQueue from '#services/enrichment_queue'
 import transcriptionQueue from '#services/transcription_queue'
@@ -141,7 +142,11 @@ export default class BookmarksController {
       savedFrom: payload.sharedFrom ? [payload.sharedFrom] : [],
     })
 
+    const shouldRunServerCapture = !capture && media.mediaProvider !== 'youtube'
     await Promise.all([
+      shouldRunServerCapture
+        ? captureQueue.dispatch(bookmark.id, captureBaseUrl)
+        : Promise.resolve(),
       enrichmentQueue.dispatch(bookmark.id, payload.content),
       media.isMedia ? transcriptionQueue.dispatch(bookmark.id) : Promise.resolve(),
     ])

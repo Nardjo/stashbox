@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
+import app from '@adonisjs/core/services/app'
 import { test } from '@japa/runner'
 import { hashUrl, normalizeUrl } from '@stashbox/shared'
 
 import TranscribeBookmarkJob from '#jobs/transcribe_bookmark_job'
 import Bookmark from '#models/bookmark'
+import captureQueue from '#services/capture_queue'
+import ServerCaptureProvider from '#services/server_capture_provider'
 import { authHeader } from '#tests/helpers/api_key'
 
 const pngDataUrl =
@@ -14,6 +17,9 @@ test.group('POST /bookmarks', (group) => {
   let auth: { Authorization: string }
   group.each.setup(async () => {
     auth = await authHeader()
+  })
+  group.each.teardown(() => {
+    app.container.restoreAll()
   })
 
   test('creates a bookmark from a URL and returns 201', async ({ client, assert }) => {
@@ -35,6 +41,82 @@ test.group('POST /bookmarks', (group) => {
     assert.equal(body.isMedia, false)
     assert.equal(body.transcriptionStatus, 'none')
     assert.equal(body.savedCount, 1)
+  })
+
+  test('captures URL-only non-YouTube bookmarks in the server worker', async ({
+    client,
+    assert,
+  }) => {
+    let capturedUrl = ''
+    app.container.swap(
+      ServerCaptureProvider,
+      () =>
+        ({
+          capture: async (url: string) => {
+            capturedUrl = url
+            return {
+              buffer: Buffer.from(pngDataUrl.split(',')[1], 'base64'),
+              width: 1280,
+              height: 720,
+            }
+          },
+        }) as unknown as ServerCaptureProvider
+    )
+
+    const created = await client
+      .post('/bookmarks')
+      .headers({ ...auth, host: 'api.local:4567' })
+      .json({ url: 'https://example.com/server-capture' })
+
+    created.assertStatus(201)
+    assert.isNull(created.body().capture)
+
+    await captureQueue.flush()
+
+    const after = await client
+      .get(`/bookmarks/${created.body().id}`)
+      .headers({ ...auth, host: 'api.local:4567' })
+    after.assertStatus(200)
+
+    const capture = after.body().capture
+    assert.equal(capturedUrl, 'https://example.com/server-capture')
+    assert.equal(capture.source, 'server')
+    assert.equal(capture.mimeType, 'image/png')
+    assert.equal(capture.width, 1280)
+    assert.equal(capture.height, 720)
+    assert.isAbove(capture.byteSize, 0)
+    assert.match(capture.url, /^http:\/\/api\.local:4567\/captures\/[0-9a-f-]{36}\.png$/)
+
+    const image = await client.get(new URL(capture.url).pathname)
+    image.assertStatus(200)
+    assert.include(String(image.header('content-type')), 'image/png')
+  })
+
+  test('keeps capture failures isolated from enrichment state', async ({ client, assert }) => {
+    app.container.swap(
+      ServerCaptureProvider,
+      () =>
+        ({
+          capture: async () => {
+            throw new Error('browser unavailable')
+          },
+        }) as unknown as ServerCaptureProvider
+    )
+
+    const created = await client
+      .post('/bookmarks')
+      .headers(auth)
+      .json({ url: 'https://example.com/capture-fails' })
+    created.assertStatus(201)
+
+    await captureQueue.flush()
+
+    const after = await client.get(`/bookmarks/${created.body().id}`).headers(auth)
+    after.assertStatus(200)
+    assert.isNull(after.body().capture)
+    assert.equal(after.body().enrichmentStatus, 'pending')
+    assert.isNull(after.body().enrichmentError)
+    assert.isNull(after.body().enrichmentFailureReason)
   })
 
   test('stores one client capture for extension saves', async ({ client, assert }) => {
@@ -86,6 +168,46 @@ test.group('POST /bookmarks', (group) => {
     assert.equal(second.body().capture.height, 100)
   })
 
+  test('does not enqueue server capture on dedupe collisions', async ({ client, assert }) => {
+    const capturedUrls: string[] = []
+    app.container.swap(
+      ServerCaptureProvider,
+      () =>
+        ({
+          capture: async (url: string) => {
+            capturedUrls.push(url)
+            return {
+              buffer: Buffer.from(pngDataUrl.split(',')[1], 'base64'),
+              width: 1280,
+              height: 720,
+            }
+          },
+        }) as unknown as ServerCaptureProvider
+    )
+
+    const first = await client
+      .post('/bookmarks')
+      .headers(auth)
+      .json({
+        url: 'https://example.com/dedupe-server-capture?utm_source=one',
+        capture: { dataUrl: pngDataUrl, width: 100, height: 100 },
+      })
+    first.assertStatus(201)
+
+    const second = await client
+      .post('/bookmarks')
+      .headers(auth)
+      .json({ url: 'https://www.example.com/dedupe-server-capture/' })
+    second.assertStatus(409)
+
+    await captureQueue.flush()
+
+    assert.deepEqual(capturedUrls, [])
+    assert.equal(second.body().id, first.body().id)
+    assert.equal(second.body().capture.source, 'client')
+    assert.equal(second.body().capture.width, 100)
+  })
+
   test('marks allowlisted media for transcription without blocking save', async ({
     client,
     assert,
@@ -126,6 +248,9 @@ test.group('POST /bookmarks', (group) => {
     media.assertStatus(201)
     assert.equal(media.body().mediaProvider, 'youtube')
     assert.equal(media.body().ogImage, 'https://i.ytimg.com/vi/thumb123abc/hqdefault.jpg')
+    assert.isNull(media.body().capture)
+
+    await captureQueue.flush()
     assert.isNull(media.body().capture)
   })
 

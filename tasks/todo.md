@@ -1,3 +1,35 @@
+# Issue 55 - Server Capture for URL-only Saves
+
+## Plan
+
+- [x] Read GitHub issue #55 and create draft PR linked with `Closes #55`.
+- [x] RED 1: API functional test proves URL-only bookmark save returns immediately with no capture, then async server capture fills capture metadata after queue flush.
+- [x] GREEN 1: Add server capture queue/job and wire URL-only saves to dispatch without blocking response.
+- [x] RED 2: worker failure leaves bookmark/enrichment healthy and capture empty.
+- [x] GREEN 2: isolate capture failures and keep them non-blocking.
+- [x] RED 3: dedupe/conflict does not enqueue or replace an existing capture.
+- [x] GREEN 3: preserve existing dedupe behavior.
+- [x] RED/GREEN: import CSV URL-only rows also enqueue Server Capture.
+- [x] Refactor: keep Playwright rendering behind a small provider interface and reuse capture storage serialization.
+- [x] Verify API tests, typecheck, focused lint/prettier, and a local browser smoke test.
+
+## Review
+
+- Server Capture now uses a dedicated BullMQ queue and local Playwright provider.
+- URL-only API saves enqueue capture without blocking the 201 response; YouTube keeps thumbnail behavior.
+- CSV import also dispatches capture for URL-only non-YouTube rows.
+- Capture failures are isolated from enrichment state.
+- Targeted lint/prettier, package typechecks, API test suite, shared/api-client tests, and Playwright smoke passed.
+- Follow-up diagnosis: the current dev worker process was stale after adding `captureQueue`; `apps/api/scripts/dev.mjs` now runs `queue:listen` under Node watch mode so future worker code changes restart the worker.
+
+## Scope
+
+- Apps/packages: `apps/api` primarily; `apps/web` only if display ordering needs adjustment.
+- Public behavior: `/bookmarks` response remains fast; capture arrives asynchronously through the worker.
+- Out of scope: authenticated server capture with saved cookies (#57) and Groq transcription (#59).
+
+---
+
 # Parallel Implementation: Issues #54, #56, #58
 
 ## Plan

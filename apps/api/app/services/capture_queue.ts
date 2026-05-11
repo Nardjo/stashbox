@@ -1,42 +1,42 @@
 import type { Queue, Worker } from 'bullmq'
 
-import EnrichBookmarkJob from '#jobs/enrich_bookmark_job'
+import CaptureBookmarkJob from '#jobs/capture_bookmark_job'
 import env from '#start/env'
 
-const QUEUE_NAME = 'enrichment'
-const JOB_NAME = 'enrich-bookmark'
+const QUEUE_NAME = 'capture'
+const JOB_NAME = 'capture-bookmark'
 
-interface EnrichJobData {
+interface CaptureJobData {
   bookmarkId: string
-  content?: string
+  baseUrl?: string
 }
 
-class EnrichmentQueueService {
-  private bullQueue: Queue<EnrichJobData> | null = null
-  private worker: Worker<EnrichJobData> | null = null
-  private inProcessJobs: EnrichJobData[] = []
+class CaptureQueueService {
+  private bullQueue: Queue<CaptureJobData> | null = null
+  private worker: Worker<CaptureJobData> | null = null
+  private inProcessJobs: CaptureJobData[] = []
 
   private get useInProcess(): boolean {
     return env.get('NODE_ENV') === 'test'
   }
 
-  private async getBullQueue(): Promise<Queue<EnrichJobData>> {
+  private async getBullQueue(): Promise<Queue<CaptureJobData>> {
     if (this.bullQueue) return this.bullQueue
     const { Queue: BullQueue } = await import('bullmq')
-    this.bullQueue = new BullQueue<EnrichJobData>(QUEUE_NAME, {
+    this.bullQueue = new BullQueue<CaptureJobData>(QUEUE_NAME, {
       connection: { url: env.get('REDIS_URL') },
     })
     return this.bullQueue
   }
 
-  async dispatch(bookmarkId: string, content?: string): Promise<void> {
+  async dispatch(bookmarkId: string, baseUrl?: string): Promise<void> {
     if (this.useInProcess) {
-      this.inProcessJobs.push({ bookmarkId, content })
+      this.inProcessJobs.push({ bookmarkId, baseUrl })
       return
     }
 
     const queue = await this.getBullQueue()
-    await queue.add(JOB_NAME, { bookmarkId, content })
+    await queue.add(JOB_NAME, { bookmarkId, baseUrl })
   }
 
   async flush(): Promise<void> {
@@ -44,20 +44,20 @@ class EnrichmentQueueService {
     this.inProcessJobs = []
     await Promise.all(
       pending.map((job) =>
-        EnrichBookmarkJob.handle(job.bookmarkId, job.content).catch((err) => {
-          console.error('[enrichment in-process] job failed', err)
+        CaptureBookmarkJob.handle(job.bookmarkId, job.baseUrl).catch((err) => {
+          console.error('[capture in-process] job failed', err)
         })
       )
     )
   }
 
-  async startWorker(): Promise<Worker<EnrichJobData>> {
+  async startWorker(): Promise<Worker<CaptureJobData>> {
     if (this.worker) return this.worker
     const { Worker: BullWorker } = await import('bullmq')
-    this.worker = new BullWorker<EnrichJobData>(
+    this.worker = new BullWorker<CaptureJobData>(
       QUEUE_NAME,
       async (job) => {
-        await EnrichBookmarkJob.handle(job.data.bookmarkId, job.data.content)
+        await CaptureBookmarkJob.handle(job.data.bookmarkId, job.data.baseUrl)
       },
       { connection: { url: env.get('REDIS_URL') } }
     )
@@ -72,5 +72,5 @@ class EnrichmentQueueService {
   }
 }
 
-const enrichmentQueue = new EnrichmentQueueService()
-export default enrichmentQueue
+const captureQueue = new CaptureQueueService()
+export default captureQueue

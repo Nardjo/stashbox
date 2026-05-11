@@ -60,7 +60,7 @@ export type ClientCaptureInput = z.infer<typeof ClientCaptureInputSchema>;
 
 export const CaptureSchema = z.object({
   url: z.string().url(),
-  source: z.enum(["client"]),
+  source: z.enum(["client", "server"]),
   mimeType: z.literal("image/png"),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),

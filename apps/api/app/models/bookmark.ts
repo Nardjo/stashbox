@@ -48,7 +48,7 @@ export default class Bookmark extends BaseModel {
   declare captureUrl: string | null
 
   @column()
-  declare captureSource: 'client' | null
+  declare captureSource: 'client' | 'server' | null
 
   @column()
   declare captureMimeType: 'image/png' | null

@@ -8,14 +8,19 @@ import { test } from '@japa/runner'
 import nock from 'nock'
 
 import Bookmark from '#models/bookmark'
+import captureQueue from '#services/capture_queue'
 import EmbeddingProvider from '#services/embedding_provider'
 import enrichmentQueue from '#services/enrichment_queue'
 import LlmProvider from '#services/llm_provider'
+import ServerCaptureProvider from '#services/server_capture_provider'
 import { mockEmbeddingReturning } from '#tests/helpers/mock_embedding'
 import { mockModelReturning } from '#tests/helpers/mock_llm'
 
 import ExportCsv from '../../commands/export_csv.js'
 import ImportCsv from '../../commands/import_csv.js'
+
+const pngDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
 
 async function tmpFile(name: string, content = ''): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'stashbox-csv-'))
@@ -87,6 +92,40 @@ test.group('ace import:csv', (group) => {
     const row = await Bookmark.findByOrFail('url', 'https://example.com/a')
     assert.exists(row.id)
     assert.match(logsOf(command), /inserted[^\n]*1/i)
+  })
+
+  test('captures imported URL-only rows in the server worker', async ({ assert }) => {
+    let capturedUrl = ''
+    app.container.swap(
+      ServerCaptureProvider,
+      () =>
+        ({
+          capture: async (url: string) => {
+            capturedUrl = url
+            return {
+              buffer: Buffer.from(pngDataUrl.split(',')[1], 'base64'),
+              width: 1280,
+              height: 720,
+            }
+          },
+        }) as unknown as ServerCaptureProvider
+    )
+
+    const path = await tmpFile('capture.csv', 'url,title\nhttps://example.com/import-capture,A\n')
+    const command = await ace.create(ImportCsv, [path])
+    command.ui.switchMode('raw')
+    await command.exec()
+
+    await captureQueue.flush()
+    await enrichmentQueue.flush()
+
+    const row = await Bookmark.findByOrFail('url', 'https://example.com/import-capture')
+    assert.equal(capturedUrl, 'https://example.com/import-capture')
+    assert.equal(row.captureSource, 'server')
+    assert.equal(row.captureMimeType, 'image/png')
+    assert.equal(row.captureWidth, 1280)
+    assert.equal(row.captureHeight, 720)
+    assert.isAbove(row.captureByteSize ?? 0, 0)
   })
 
   test('skips duplicate urls', async ({ assert }) => {
