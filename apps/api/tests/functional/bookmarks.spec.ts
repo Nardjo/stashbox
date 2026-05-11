@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import app from '@adonisjs/core/services/app'
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { hashUrl, normalizeUrl } from '@stashbox/shared'
 
@@ -12,6 +13,45 @@ import { authHeader } from '#tests/helpers/api_key'
 
 const pngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+
+const siteCredentialCookie = {
+  name: 'sid',
+  value: 'secret-cookie-value',
+  domain: '.example.com',
+  path: '/',
+  secure: true,
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  expirationDate: 1_893_456_000,
+  session: false,
+  hostOnly: false,
+}
+
+interface CapturedServerCapture {
+  url: string
+  cookies?: Array<Record<string, unknown>>
+}
+
+function swapSuccessfulServerCapture(): CapturedServerCapture {
+  const captured: CapturedServerCapture = { url: '' }
+  app.container.swap(
+    ServerCaptureProvider,
+    () =>
+      ({
+        capture: async (url: string, options?: { cookies?: Array<Record<string, unknown>> }) => {
+          captured.url = url
+          captured.cookies = options?.cookies
+          return {
+            buffer: Buffer.from(pngDataUrl.split(',')[1], 'base64'),
+            width: 1280,
+            height: 720,
+          }
+        },
+      }) as unknown as ServerCaptureProvider
+  )
+
+  return captured
+}
 
 test.group('POST /bookmarks', (group) => {
   let auth: { Authorization: string }
@@ -47,21 +87,7 @@ test.group('POST /bookmarks', (group) => {
     client,
     assert,
   }) => {
-    let capturedUrl = ''
-    app.container.swap(
-      ServerCaptureProvider,
-      () =>
-        ({
-          capture: async (url: string) => {
-            capturedUrl = url
-            return {
-              buffer: Buffer.from(pngDataUrl.split(',')[1], 'base64'),
-              width: 1280,
-              height: 720,
-            }
-          },
-        }) as unknown as ServerCaptureProvider
-    )
+    const captured = swapSuccessfulServerCapture()
 
     const created = await client
       .post('/bookmarks')
@@ -79,7 +105,8 @@ test.group('POST /bookmarks', (group) => {
     after.assertStatus(200)
 
     const capture = after.body().capture
-    assert.equal(capturedUrl, 'https://example.com/server-capture')
+    assert.equal(captured.url, 'https://example.com/server-capture')
+    assert.deepEqual(captured.cookies, [])
     assert.equal(capture.source, 'server')
     assert.equal(capture.mimeType, 'image/png')
     assert.equal(capture.width, 1280)
@@ -90,6 +117,109 @@ test.group('POST /bookmarks', (group) => {
     const image = await client.get(new URL(capture.url).pathname)
     image.assertStatus(200)
     assert.include(String(image.header('content-type')), 'image/png')
+  })
+
+  test('uses matching Site credentials for server capture', async ({ client, assert }) => {
+    const captured = swapSuccessfulServerCapture()
+
+    const synced = await client
+      .post('/site-credentials/sync')
+      .headers(auth)
+      .json({ domain: 'example.com', cookies: [siteCredentialCookie] })
+    synced.assertStatus(200)
+
+    const created = await client
+      .post('/bookmarks')
+      .headers({ ...auth, host: 'api.local:4567' })
+      .json({ url: 'https://example.com/private' })
+    created.assertStatus(201)
+
+    await captureQueue.flush()
+
+    const after = await client
+      .get(`/bookmarks/${created.body().id}`)
+      .headers({ ...auth, host: 'api.local:4567' })
+    after.assertStatus(200)
+
+    assert.equal(captured.url, 'https://example.com/private')
+    assert.deepEqual(captured.cookies, [
+      {
+        name: 'sid',
+        value: 'secret-cookie-value',
+        domain: '.example.com',
+        path: '/',
+        secure: true,
+        httpOnly: true,
+        sameSite: 'Lax',
+        expires: 1_893_456_000,
+      },
+    ])
+    assert.isFalse(JSON.stringify(created.body()).includes('secret-cookie-value'))
+    assert.isFalse(JSON.stringify(after.body()).includes('secret-cookie-value'))
+    assert.equal(after.body().capture.source, 'server')
+  })
+
+  test('uses parent-domain Site credentials for server capture subdomains', async ({
+    client,
+    assert,
+  }) => {
+    const captured = swapSuccessfulServerCapture()
+
+    const synced = await client
+      .post('/site-credentials/sync')
+      .headers(auth)
+      .json({ domain: 'example.com', cookies: [siteCredentialCookie] })
+    synced.assertStatus(200)
+
+    const created = await client
+      .post('/bookmarks')
+      .headers({ ...auth, host: 'api.local:4567' })
+      .json({ url: 'https://private.example.com/account' })
+    created.assertStatus(201)
+
+    await captureQueue.flush()
+
+    assert.equal(captured.url, 'https://private.example.com/account')
+    assert.deepEqual(captured.cookies, [
+      {
+        name: 'sid',
+        value: 'secret-cookie-value',
+        domain: '.example.com',
+        path: '/',
+        secure: true,
+        httpOnly: true,
+        sameSite: 'Lax',
+        expires: 1_893_456_000,
+      },
+    ])
+  })
+
+  test('ignores invalid Site credentials during server capture', async ({ client, assert }) => {
+    const captured = swapSuccessfulServerCapture()
+
+    await db.table('site_credentials').insert({
+      domain: 'example.com',
+      encrypted_cookies: 'invalid-ciphertext',
+      cookie_count: 1,
+    })
+
+    const created = await client
+      .post('/bookmarks')
+      .headers({ ...auth, host: 'api.local:4567' })
+      .json({ url: 'https://example.com/private-invalid-cookie' })
+    created.assertStatus(201)
+
+    await captureQueue.flush()
+
+    const after = await client
+      .get(`/bookmarks/${created.body().id}`)
+      .headers({ ...auth, host: 'api.local:4567' })
+    after.assertStatus(200)
+
+    assert.equal(captured.url, 'https://example.com/private-invalid-cookie')
+    assert.deepEqual(captured.cookies, [])
+    assert.equal(after.body().capture.source, 'server')
+    assert.isFalse(JSON.stringify(after.body()).includes('invalid-ciphertext'))
   })
 
   test('keeps capture failures isolated from enrichment state', async ({ client, assert }) => {
