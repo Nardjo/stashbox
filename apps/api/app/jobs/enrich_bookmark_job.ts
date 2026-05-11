@@ -53,8 +53,9 @@ export default class EnrichBookmarkJob {
         fallback: bookmark.title || bookmark.url,
       })
 
+      if (fetched?.ogImage) bookmark.ogImage = fetched.ogImage
+
       if (fetched?.kind === 'success') {
-        if (fetched.ogImage) bookmark.ogImage = fetched.ogImage
         if (fetched.embedData !== undefined) bookmark.embedData = fetched.embedData
       }
 

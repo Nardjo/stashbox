@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { basename } from 'node:path'
 
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
@@ -10,6 +11,7 @@ import Bookmark from '#models/bookmark'
 import { storeClientCapture, type StoredCapture } from '#services/capture_storage'
 import enrichmentQueue from '#services/enrichment_queue'
 import transcriptionQueue from '#services/transcription_queue'
+import { getYouTubeThumbnailUrl } from '#services/youtube_thumbnail'
 import { createBookmarkValidator } from '#validators/bookmark'
 
 const indexValidator = vine.compile(
@@ -43,7 +45,7 @@ export default class BookmarksController {
       params
     )
     const rows: Array<Record<string, unknown>> = result.rows ?? result
-    return { results: rows.map(serializeBookmarkRow) }
+    return { results: rows.map((row) => serializeBookmarkRow(row, getRequestBaseUrl(request))) }
   }
 
   async index({ request }: HttpContext) {
@@ -74,7 +76,7 @@ export default class BookmarksController {
       params
     )
     const rows: Array<Record<string, unknown>> = result.rows ?? result
-    return { results: rows.map(serializeBookmarkRow) }
+    return { results: rows.map((row) => serializeBookmarkRow(row, getRequestBaseUrl(request))) }
   }
 
   async store({ request, response }: HttpContext) {
@@ -83,17 +85,19 @@ export default class BookmarksController {
     const url = normalizeUrl(payload.url)
     const urlHash = hashUrl(url)
     const media = detectMedia(url)
+    const captureBaseUrl = getRequestBaseUrl(request)
+    const initialOgImage = media.mediaProvider === 'youtube' ? getYouTubeThumbnailUrl(url) : null
 
     const existing = await Bookmark.findBy('urlHash', urlHash)
     if (existing) {
-      return response.conflict(serializeBookmarkModel(existing))
+      return response.conflict(serializeBookmarkModel(existing, captureBaseUrl))
     }
 
     const id = randomUUID()
     let capture: StoredCapture | null = null
-    if (payload.capture) {
+    if (payload.capture && media.mediaProvider !== 'youtube') {
       try {
-        capture = await storeClientCapture(id, payload.capture)
+        capture = await storeClientCapture(id, payload.capture, captureBaseUrl)
       } catch (error) {
         return response.status(422).send({
           error: 'validation_failed',
@@ -110,7 +114,7 @@ export default class BookmarksController {
       title: payload.title ?? '',
       description: '',
       tags: [],
-      ogImage: null,
+      ogImage: initialOgImage,
       capturePath: capture?.path ?? null,
       captureUrl: capture?.url ?? null,
       captureSource: capture?.source ?? null,
@@ -142,15 +146,15 @@ export default class BookmarksController {
       media.isMedia ? transcriptionQueue.dispatch(bookmark.id) : Promise.resolve(),
     ])
 
-    return response.created(serializeBookmarkModel(bookmark))
+    return response.created(serializeBookmarkModel(bookmark, captureBaseUrl))
   }
 
-  async show({ params, response }: HttpContext) {
+  async show({ params, request, response }: HttpContext) {
     const bookmark = await Bookmark.find(params.id)
     if (!bookmark) {
       return response.notFound({ error: 'not_found', message: 'Bookmark not found' })
     }
-    return serializeBookmarkModel(bookmark)
+    return serializeBookmarkModel(bookmark, getRequestBaseUrl(request))
   }
 
   async refresh({ params, response }: HttpContext) {
@@ -176,7 +180,10 @@ export default class BookmarksController {
   }
 }
 
-export function serializeBookmarkModel(bookmark: Bookmark): Record<string, unknown> {
+export function serializeBookmarkModel(
+  bookmark: Bookmark,
+  captureBaseUrl?: string
+): Record<string, unknown> {
   return {
     id: bookmark.id,
     url: bookmark.url,
@@ -186,16 +193,25 @@ export function serializeBookmarkModel(bookmark: Bookmark): Record<string, unkno
     description: bookmark.description,
     tags: bookmark.tags,
     embedding: null,
-    ogImage: bookmark.ogImage,
-    capture: serializeCapture({
-      url: bookmark.captureUrl,
-      source: bookmark.captureSource,
-      mimeType: bookmark.captureMimeType,
-      width: bookmark.captureWidth,
-      height: bookmark.captureHeight,
-      byteSize: bookmark.captureByteSize,
-      capturedAt: bookmark.capturedAt,
-    }),
+    ogImage: serializeOgImage(
+      bookmark.url,
+      bookmark.ogImage,
+      bookmark.mediaProvider,
+      bookmark.type
+    ),
+    capture: serializeCapture(
+      {
+        path: bookmark.capturePath,
+        url: bookmark.captureUrl,
+        source: bookmark.captureSource,
+        mimeType: bookmark.captureMimeType,
+        width: bookmark.captureWidth,
+        height: bookmark.captureHeight,
+        byteSize: bookmark.captureByteSize,
+        capturedAt: bookmark.capturedAt,
+      },
+      captureBaseUrl
+    ),
     embedData: bookmark.embedData,
     isMedia: bookmark.isMedia,
     mediaKind: bookmark.mediaKind,
@@ -217,7 +233,10 @@ export function serializeBookmarkModel(bookmark: Bookmark): Record<string, unkno
   }
 }
 
-export function serializeBookmarkRow(r: Record<string, unknown>): Record<string, unknown> {
+export function serializeBookmarkRow(
+  r: Record<string, unknown>,
+  captureBaseUrl?: string
+): Record<string, unknown> {
   return {
     id: r.id,
     url: r.url,
@@ -227,16 +246,20 @@ export function serializeBookmarkRow(r: Record<string, unknown>): Record<string,
     description: r.description,
     tags: parseTags(r.tags),
     embedding: null,
-    ogImage: r.og_image,
-    capture: serializeCapture({
-      url: r.capture_url,
-      source: r.capture_source,
-      mimeType: r.capture_mime_type,
-      width: r.capture_width,
-      height: r.capture_height,
-      byteSize: r.capture_byte_size,
-      capturedAt: r.captured_at,
-    }),
+    ogImage: serializeOgImage(r.url, r.og_image, r.media_provider, r.type),
+    capture: serializeCapture(
+      {
+        path: r.capture_path,
+        url: r.capture_url,
+        source: r.capture_source,
+        mimeType: r.capture_mime_type,
+        width: r.capture_width,
+        height: r.capture_height,
+        byteSize: r.capture_byte_size,
+        capturedAt: r.captured_at,
+      },
+      captureBaseUrl
+    ),
     embedData: r.embed_data,
     isMedia: r.is_media,
     mediaKind: r.media_kind,
@@ -258,19 +281,24 @@ export function serializeBookmarkRow(r: Record<string, unknown>): Record<string,
   }
 }
 
-function serializeCapture(input: {
-  url: unknown
-  source: unknown
-  mimeType: unknown
-  width: unknown
-  height: unknown
-  byteSize: unknown
-  capturedAt: unknown
-}): Record<string, unknown> | null {
-  if (!input.url || !input.byteSize || !input.capturedAt) return null
+function serializeCapture(
+  input: {
+    path: unknown
+    url: unknown
+    source: unknown
+    mimeType: unknown
+    width: unknown
+    height: unknown
+    byteSize: unknown
+    capturedAt: unknown
+  },
+  captureBaseUrl?: string
+): Record<string, unknown> | null {
+  const url = buildCaptureUrl(input.url, input.path, captureBaseUrl)
+  if (!url || !input.byteSize || !input.capturedAt) return null
 
   return {
-    url: input.url,
+    url,
     source: input.source ?? 'client',
     mimeType: input.mimeType ?? 'image/png',
     width: toNullableNumber(input.width),
@@ -278,6 +306,39 @@ function serializeCapture(input: {
     byteSize: Number(input.byteSize),
     capturedAt: toIso(input.capturedAt),
   }
+}
+
+function buildCaptureUrl(storedUrl: unknown, storedPath: unknown, baseUrl?: string): string | null {
+  if (!baseUrl) return storedUrl ? String(storedUrl) : null
+
+  const origin = baseUrl.replace(/\/$/, '')
+  if (typeof storedUrl === 'string' && storedUrl.length > 0) {
+    try {
+      return `${origin}${new URL(storedUrl).pathname}`
+    } catch {
+      return storedUrl.startsWith('/captures/') ? `${origin}${storedUrl}` : storedUrl
+    }
+  }
+
+  if (typeof storedPath === 'string' && storedPath.length > 0) {
+    return `${origin}/captures/${basename(storedPath)}`
+  }
+
+  return null
+}
+
+function serializeOgImage(
+  url: unknown,
+  ogImage: unknown,
+  mediaProvider: unknown,
+  type: unknown
+): string | null {
+  if (typeof ogImage === 'string' && ogImage.length > 0) return ogImage
+  if ((mediaProvider === 'youtube' || type === 'youtube') && typeof url === 'string') {
+    return getYouTubeThumbnailUrl(url)
+  }
+
+  return null
 }
 
 function parseTags(v: unknown): string[] {
@@ -291,6 +352,10 @@ function parseTags(v: unknown): string[] {
     }
   }
   return []
+}
+
+function getRequestBaseUrl(request: HttpContext['request']): string {
+  return `${request.protocol()}://${request.host() ?? 'localhost'}`
 }
 
 function toIso(v: unknown): string | null {

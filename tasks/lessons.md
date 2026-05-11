@@ -15,3 +15,8 @@
 - Avoid native selects for polished compact filter menus on macOS; use the app dropdown component so popup styling stays controlled.
 - In shadcn/Radix triggers, parent arbitrary selectors like `[&>span]:line-clamp-1` can override `hidden` on direct child spans; wrap responsive text in a non-span element when compact controls must stay icon-only.
 - When adding Radix primitives in a Vite monorepo, dedupe `react` and `react-dom` in `vite.config.ts` before trusting e2e hydration results.
+- Capture asset URLs should be derived from the actual API request origin, not only `APP_URL`; local self-hosted ports can diverge between `.env` files.
+- For provider-native rich media like YouTube, prefer provider thumbnails over generic page screenshots and skip client capture when possible.
+- Web server functions should treat stale delete `404 not_found` responses as idempotent success when the user intent is "remove from this list".
+- Delete interactions should remove list items optimistically before awaiting server functions, then restore on rejection; otherwise interrupted dev/server calls can leave confirmation dialogs stuck.
+- YouTube thumbnails must be derived from the video id at ingest/serialization time; extension-provided content can skip oEmbed enrichment entirely.

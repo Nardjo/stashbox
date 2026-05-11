@@ -1,5 +1,10 @@
 import { ApiError, StashboxClient } from "@stashbox/api-client";
-import type { Bookmark, ClientCaptureInput, SiteCredentialMetadata } from "@stashbox/shared";
+import {
+  type Bookmark,
+  type ClientCaptureInput,
+  detectMedia,
+  type SiteCredentialMetadata,
+} from "@stashbox/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useSaveFlow } from "../hooks/useSaveFlow.js";
@@ -211,7 +216,10 @@ export function Popup() {
   const save = useCallback(async (): Promise<Bookmark> => {
     if (!client) throw new Error("Not configured");
     const extracted = await extractFromActiveTab();
-    const capture = await captureVisibleViewport();
+    const capture =
+      detectMedia(extracted.url).mediaProvider === "youtube"
+        ? undefined
+        : await captureVisibleViewport();
     try {
       return await client.add({
         url: extracted.url,

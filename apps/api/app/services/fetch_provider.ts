@@ -1,5 +1,6 @@
 import type { BookmarkType } from '@stashbox/shared'
 
+import { getYouTubeThumbnailUrl } from '#services/youtube_thumbnail'
 import env from '#start/env'
 
 export type FetchOutcome =
@@ -80,11 +81,13 @@ async function fetchTweet(url: string): Promise<FetchOutcome> {
 }
 
 async function fetchYouTube(url: string): Promise<FetchOutcome> {
+  const thumbnailUrl = getYouTubeThumbnailUrl(url)
   const oembed = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
   try {
     const res = await fetchWithTimeout(oembed, {}, FETCH_TIMEOUT_MS)
     if (res.status === 404) return { kind: 'dead', reason: 'url_dead' }
-    if (!res.ok) return { kind: 'meta_only', reason: 'transient' }
+    if (!res.ok)
+      return { kind: 'meta_only', reason: 'transient', ogImage: thumbnailUrl ?? undefined }
     const data = (await res.json()) as {
       title?: string
       author_name?: string
@@ -95,10 +98,10 @@ async function fetchYouTube(url: string): Promise<FetchOutcome> {
       kind: 'success',
       content,
       embedData: data,
-      ogImage: data.thumbnail_url,
+      ogImage: data.thumbnail_url ?? thumbnailUrl ?? undefined,
     }
   } catch {
-    return { kind: 'meta_only', reason: 'transient' }
+    return { kind: 'meta_only', reason: 'transient', ogImage: thumbnailUrl ?? undefined }
   }
 }
 

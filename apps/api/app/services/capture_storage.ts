@@ -17,7 +17,8 @@ export type StoredCapture = Capture & {
 
 export async function storeClientCapture(
   bookmarkId: string,
-  capture: ClientCaptureInput
+  capture: ClientCaptureInput,
+  baseUrl = appUrl
 ): Promise<StoredCapture> {
   const buffer = decodePngDataUrl(capture.dataUrl)
   const directory = app.makePath('tmp', 'captures')
@@ -30,7 +31,7 @@ export async function storeClientCapture(
 
   return {
     path,
-    url: `${appUrl.replace(/\/$/, '')}/captures/${filename}`,
+    url: `${baseUrl.replace(/\/$/, '')}/captures/${filename}`,
     source: 'client',
     mimeType: 'image/png',
     width: capture.width ?? null,

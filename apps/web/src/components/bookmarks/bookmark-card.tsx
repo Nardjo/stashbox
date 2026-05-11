@@ -18,7 +18,7 @@ export function BookmarkCard({ bookmark, onDeleteBookmark }: BookmarkCardProps) 
   const [hasCopiedUrl, setHasCopiedUrl] = useState(false);
   const domain = getDomain(bookmark.url);
   const title = bookmark.title.trim() || domain || bookmark.url;
-  const previewImageUrl = bookmark.capture?.url ?? bookmark.ogImage;
+  const previewImageUrl = getPreviewImageUrl(bookmark);
   const isLoading =
     bookmark.enrichmentStatus === "pending" || bookmark.enrichmentStatus === "enriching";
 
@@ -425,6 +425,14 @@ function getStatusLabel(status: Bookmark["enrichmentStatus"]) {
   if (status === "degraded") return "Dégradé";
   if (status === "failed") return "Échec";
   return "En attente";
+}
+
+function getPreviewImageUrl(bookmark: Bookmark) {
+  if (bookmark.mediaProvider === "youtube") {
+    return bookmark.ogImage ?? bookmark.capture?.url ?? null;
+  }
+
+  return bookmark.capture?.url ?? bookmark.ogImage;
 }
 
 function getStatusClassName(status: Bookmark["enrichmentStatus"]) {

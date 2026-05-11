@@ -6,13 +6,27 @@ export async function syncCurrentSiteCredentials(
 ): Promise<SiteCredentialMetadata> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const siteUrl = getHttpSiteUrl(tab?.url);
+  const cookiesApi = getCookiesApi();
 
-  const cookies = await chrome.cookies.getAll({ url: siteUrl.toString() });
+  const cookies = await cookiesApi.getAll({ url: siteUrl.toString() });
 
   return client.syncSiteCredentials({
     domain: siteUrl.hostname,
     cookies: cookies.map(toSiteCredentialCookie),
   });
+}
+
+function getCookiesApi(): typeof chrome.cookies {
+  const cookiesApi = (chrome as { cookies?: typeof chrome.cookies }).cookies;
+  if (cookiesApi?.getAll) return cookiesApi;
+
+  const permissions = chrome.runtime.getManifest().permissions ?? [];
+  const hasCookiePermission = permissions.includes("cookies");
+  const reason = hasCookiePermission
+    ? "Rechargez l'extension depuis chrome://extensions pour activer la permission cookies."
+    : "La permission cookies est absente du manifest de l'extension.";
+
+  throw new Error(`Impossible de lire les cookies. ${reason}`);
 }
 
 function getHttpSiteUrl(value: string | undefined): URL {

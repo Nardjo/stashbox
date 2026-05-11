@@ -147,6 +147,23 @@ describe("Bookmark server functions", () => {
     expect(requests[0]?.init?.method).toBe("DELETE");
   });
 
+  it("treats a missing Bookmark delete as already deleted", async () => {
+    vi.stubEnv("STASHBOX_API_URL", "https://stashbox.example");
+    vi.stubEnv("STASHBOX_API_KEY", "secret-key");
+    vi.resetModules();
+
+    vi.stubGlobal("fetch", async () =>
+      Response.json({ error: "not_found", message: "Bookmark not found" }, { status: 404 }),
+    );
+
+    const { createStashboxServerOperations } = await import("~/server/stashbox.ts");
+    const operations = createStashboxServerOperations();
+
+    await expect(
+      operations.deleteBookmark({ id: "00000000-0000-4000-8000-000000000001" }),
+    ).resolves.toBeUndefined();
+  });
+
   it("lists Tags through the server-side Stashbox API client", async () => {
     vi.stubEnv("STASHBOX_API_URL", "https://stashbox.example");
     vi.stubEnv("STASHBOX_API_KEY", "secret-key");
