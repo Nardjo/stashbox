@@ -3,6 +3,7 @@ import { DateTime } from 'luxon'
 
 import Bookmark from '#models/bookmark'
 import { storeServerCapture } from '#services/capture_storage'
+import { loadServerCaptureCookies } from '#services/server_capture_credentials'
 import ServerCaptureProvider from '#services/server_capture_provider'
 import env from '#start/env'
 
@@ -14,7 +15,8 @@ export default class CaptureBookmarkJob {
 
     try {
       const provider = await app.container.make(ServerCaptureProvider)
-      const capture = await provider.capture(bookmark.url)
+      const cookies = await loadServerCaptureCookies(bookmark.url)
+      const capture = await provider.capture(bookmark.url, { cookies })
       const stored = await storeServerCapture(bookmark.id, capture, baseUrl)
 
       bookmark.capturePath = stored.path
